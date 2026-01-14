@@ -1,0 +1,27 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# C# files
+*.cs text diff=csharp
+
+# Solution and project files (Visual Studio requires CRLF)
+*.sln text eol=crlf
+*.csproj text eol=crlf
+
+# Shell scripts (require LF)
+*.sh text eol=lf
+
+# Markdown
+*.md text diff=markdown
+
+# JSON/XML
+*.json text
+*.xml text
+
+# Binary files (don't touch)
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.dll binary
+*.exe binary

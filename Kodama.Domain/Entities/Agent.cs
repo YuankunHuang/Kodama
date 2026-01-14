@@ -12,7 +12,7 @@ public class Agent
 
     private Agent()
     {
-        // Used by EF Core only - not exposed
+        // Used by EF(EntityFramework) Core only - not exposed
     }
 
     // factory
