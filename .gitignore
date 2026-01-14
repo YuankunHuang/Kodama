@@ -70,7 +70,7 @@ ScaffoldingReadMe.txt
 *_p.c
 *_h.h
 *.ilk
-*.meta
+# *.meta  ← REMOVED: Unity .meta files must be committed!
 *.obj
 *.iobj
 *.pch
@@ -364,6 +364,13 @@ ExportedObj/
 *.pidb.meta
 *.pdb.meta
 *.mdb.meta
+
+# Unity auto-generated project files (in Unity project folder only)
+Kodama.Client/*.csproj
+Kodama.Client/*.sln
+
+# But KEEP the Shared DLL in Unity Plugins folder
+!Kodama.Client/Assets/Plugins/*.dll
 
 # Rider
 .idea/

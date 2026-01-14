@@ -1,4 +1,4 @@
-using Kodama.Application.DTOs;
+using Kodama.Shared.DTOs;
 
 namespace Kodama.Application.Interfaces;
 

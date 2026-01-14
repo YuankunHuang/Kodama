@@ -1,5 +1,4 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -10,6 +9,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kodama.Infrastructure", "Kodama.Infrastructure\Kodama.Infrastructure.csproj", "{9A5AF09A-823D-47E3-B4F9-AF0055D3D3E6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kodama.API", "Kodama.API\Kodama.API.csproj", "{0645F816-3925-4D42-8862-1201E77AF4C1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kodama.Shared", "Kodama.Shared\Kodama.Shared.csproj", "{B1234567-89AB-CDEF-0123-456789ABCDEF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,5 +37,9 @@ Global
 		{0645F816-3925-4D42-8862-1201E77AF4C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0645F816-3925-4D42-8862-1201E77AF4C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0645F816-3925-4D42-8862-1201E77AF4C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1234567-89AB-CDEF-0123-456789ABCDEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1234567-89AB-CDEF-0123-456789ABCDEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1234567-89AB-CDEF-0123-456789ABCDEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1234567-89AB-CDEF-0123-456789ABCDEF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
