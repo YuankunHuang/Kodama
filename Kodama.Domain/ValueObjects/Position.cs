@@ -8,6 +8,7 @@ public record Position(int Q, int R)
 {
     public int DistanceTo(Position other)
     {
+        // deltaQ + deltaR + deltaS (delta<Q+R>)
         return (Math.Abs(Q - other.Q) + Math.Abs(Q + R - other.Q - other.R) + Math.Abs(R - other.R));
     }
 
