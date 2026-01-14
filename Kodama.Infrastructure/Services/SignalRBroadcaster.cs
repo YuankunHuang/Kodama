@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Kodama.Application.DTOs;
+using Kodama.Shared.DTOs;
 using Kodama.Application.Interfaces;
 using Kodama.Infrastructure.Hubs;
 using Microsoft.AspNetCore.SignalR;

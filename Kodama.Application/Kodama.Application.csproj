@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kodama.Domain\Kodama.Domain.csproj" />
+    <ProjectReference Include="..\Kodama.Shared\Kodama.Shared.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

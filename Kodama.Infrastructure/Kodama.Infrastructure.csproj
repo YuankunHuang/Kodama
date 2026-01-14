@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kodama.Application\Kodama.Application.csproj" />
+    <ProjectReference Include="..\Kodama.Shared\Kodama.Shared.csproj" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
