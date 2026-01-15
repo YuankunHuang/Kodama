@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Kodama.Shared.DTOs;
+using UnityEngine;
 using YuankunHuang.Kodama.Core;
 
 namespace YuankunHuang.Kodama.Network
@@ -12,7 +13,7 @@ namespace YuankunHuang.Kodama.Network
         private readonly string _url = string.Empty;
 
         private HubConnection _connection;
-
+        
         public SignalRClient(string url)
         {
             _url = url;
@@ -26,10 +27,7 @@ namespace YuankunHuang.Kodama.Network
 
             _connection.On<byte[]>("ReceiveSnapshot", data =>
             {
-                var snapshotData = JsonSerializer.Deserialize<SnapshotData>(data, new JsonSerializerOptions()
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                var snapshotData = JsonSerializer.Deserialize<SnapshotData>(data);
                 MonoBehaviourUtil.Instance.RunOnMainThread(() =>
                 {
                     EventBus.Publish(EventKeys.SnapshotReceived, snapshotData);
