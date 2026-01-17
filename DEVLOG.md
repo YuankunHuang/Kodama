@@ -1,8 +1,8 @@
 # Kodama 开发日志 (Development Log)
 
 **项目启动日期**: 2026-01-13  
-**当前阶段**: Phase 1 - The Pulse (MVP) ✅ 已完成  
-**下一阶段**: Phase 2 - The Loop (核心循环)
+**当前阶段**: Phase 2 - The Loop (核心循环) 🔄 进行中  
+**下一阶段**: Phase 3 - The Swarm (规模化)
 
 ---
 
@@ -18,6 +18,19 @@
 | 1.6 插值渲染 | ✅ Completed | 2026-01-14 | RenderManager + 双缓冲快照 + Lerp |
 
 **图例**: ⏳ Pending | 🔄 In Progress | ✅ Completed | ❌ Blocked
+
+---
+
+## 📋 Phase 2 进度追踪
+
+| 任务 | 状态 | 完成日期 | 备注 |
+|------|------|---------|------|
+| 2.1 Domain 实体设计 | ✅ Completed | 2026-01-17 | Agent, Resource, Tree + Position 值对象 |
+| 2.2 WorldState 容器 | ✅ Completed | 2026-01-17 | 双字典索引 + BFS 搜索 |
+| 2.3 Agent FSM 实现 | ✅ Completed | 2026-01-17 | 7 状态完整循环 |
+| 2.4 SimulationLoop 重构 | ✅ Completed | 2026-01-17 | 延迟删除 + 轴坐标快照 |
+| 2.5 后端测试验证 | ✅ Completed | 2026-01-17 | 3 Agent 正确寻路采集返回 |
+| 2.6 Unity 客户端更新 | ⏳ Pending | — | Hex 坐标转换 + 多 Agent 渲染 |
 
 ---
 
@@ -99,6 +112,40 @@ Kodama.Client/
 - 延迟决策：精确移动插值等 Phase 3 有真实需求再设计
 - 复用 Phase 1 的 Lerp 追赶逻辑
 
+### ADR-007: ID 引用而非对象引用
+**日期**: 2026-01-17  
+**决策**: 实体间通过 Guid 引用，不直接持有对象引用  
+**理由**:
+- 生命周期独立：对象删除后 ID 查询返回 null，优雅处理
+- 避免循环引用：Agent → Resource, Resource → Agent (Owner)
+- 序列化安全：DTO 只需传递 ID
+- 强制通过服务层操作：限制直接访问权限
+
+### ADR-008: 延迟删除模式
+**日期**: 2026-01-17  
+**决策**: Tick 中收集待删除 ID，遍历结束后统一删除  
+**理由**:
+- 避免遍历时修改集合异常
+- 零分配优化：大多数 Tick 无删除，toRemove 保持 null
+- 比 ToList() 复制整个集合更高效
+
+### ADR-009: WorldState 双字典索引
+**日期**: 2026-01-17  
+**决策**: 同时维护 ID 字典和 Position 字典  
+**理由**:
+- ID 查询 O(1)：通过 HarvestingResourceId 快速获取 Resource
+- 空间查询 O(1)：通过 Position 快速获取该格子的所有实体
+- 移动时需同步更新两个字典（通过 MoveAgent 方法封装）
+
+### ADR-010: 独占采集机制
+**日期**: 2026-01-17  
+**决策**: Resource 同时只能被一个 Agent 采集（Owner 字段）  
+**理由**:
+- 技术简单：不需要处理多 Agent 竞争
+- 行为有趣：Agent 自然分散到不同资源点
+- 符合 Swarm 美学：分散采集形成"光流"效果
+- YAGNI：Phase 3 需要共享采集再扩展
+
 ---
 
 ## 🐛 问题与解决方案
@@ -118,10 +165,45 @@ Kodama.Client/
 
 ## 💡 学习笔记
 
+### ID 引用 vs 对象引用
+```csharp
+// ❌ 对象引用
+public class Agent { public Resource Target; }
+// 问题：Target 删除后悬空引用、循环引用、序列化困难
+
+// ✅ ID 引用
+public class Agent { public Guid? TargetResourceId; }
+// 优点：生命周期独立、查不到就是没了、序列化安全
+```
+
+### 延迟删除模式
+```csharp
+// ❌ 遍历时删除
+foreach (var agent in agents) {
+    if (agent.IsDead) agents.Remove(agent); // 💥 异常
+}
+
+// ✅ 延迟删除
+List<Guid>? toRemove = null;
+foreach (var agent in agents) {
+    if (agent.IsDead) {
+        toRemove ??= new List<Guid>();
+        toRemove.Add(agent.Id);
+    }
+}
+if (toRemove != null) {
+    foreach (var id in toRemove) worldState.RemoveAgent(id);
+}
+```
+
+### Tick-based 模拟 vs 事件驱动
+- **事件驱动**：适合"偶尔发生"的场景（UI 点击）
+- **Tick 驱动**：适合"持续更新"的场景（1000 个 Agent 移动）
+- 在模拟中，每 Tick 都有大量实体需要更新，遍历比事件更高效
+
 ### 插值原则
 ```
 Lerp(A, B, t)
-
 t = (当前时间 - 起点时间) / 总时长
 
 关键：起点时间、当前时间、总时长 必须同源！
@@ -133,9 +215,37 @@ t = (当前时间 - 起点时间) / 总时长
 - 静态变量在 Play Mode 切换时不会重置
 - 解决方案：`[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]`
 
+### EF Core 兼容模式
+```csharp
+// 无参构造函数 + 对象初始化器
+private Entity() { } // EF Core 用
+public static Entity Create(...) {
+    return new Entity { Prop1 = val1, Prop2 = val2 };
+}
+```
+
 ---
 
 ## 🔄 更新日志
+
+### 2026-01-17
+- ✅ Phase 2 后端完成
+- **Domain 层**：
+  - 创建 Agent, Resource, Tree 实体
+  - 统一 EF Core 兼容模式（无参构造函数 + 对象初始化器）
+  - Agent 添加 Inventory, HarvestingResourceId
+  - Resource 实现 Claim/Extract/Release 机制
+- **Application 层**：
+  - 创建 WorldState（双字典索引 + BFS 搜索）
+  - 创建 AgentBehaviorService（完整 FSM）
+  - 重构 SimulationLoop（延迟删除 + 轴坐标快照）
+- **测试验证**：
+  - 3 个 Agent 正确执行采集循环
+  - 状态机流转正常
+  - 资源耗尽后正确清理
+- **开发环境**：
+  - 修复 .gitignore（保留 Unity NuGet 包）
+  - 安装 NuGetForUnity + Rider 集成
 
 ### 2026-01-14 (下午)
 - Phase 2 架构设计讨论
@@ -159,30 +269,41 @@ t = (当前时间 - 起点时间) / 总时长
 
 ## 📌 下次开发提醒
 
-**当前位置**: Phase 2 准备开始  
-**下一步**: Step 2.1 - 创建 Resource 实体
+**当前位置**: Phase 2 后端完成，准备更新客户端  
+**下一步**: Unity 客户端渲染更新
 
-### Phase 2 设计决策（已确认）
+### Phase 2 后端已完成
 
-**坐标系统**：
-- 后端：只用离散轴坐标 (Q, R)
-- 前端：离散 + 连续世界坐标（Hex → World 转换）
-- Pointy-topped，+Q = 右，+R = 右下
+**核心实体**：
+- ✅ Agent：状态机 + 库存 + 目标追踪
+- ✅ Resource：独占采集 + 耗尽检测
+- ✅ Tree：物质存储
+- ✅ Position：六边形坐标 + 距离计算
 
-**移动方案**：
-- Phase 2 MVP：即时移动（每 Tick 直接到达邻居格子）
-- 不需要起点/终点/时间戳
-- 前端用简单 Lerp 追赶（复用 Phase 1 逻辑）
-- Phase 3+ 再考虑精确插值
+**业务逻辑**：
+- ✅ WorldState：双字典索引（ID + Position）+ BFS 搜索
+- ✅ AgentBehaviorService：完整 FSM（7 状态）
+- ✅ SimulationLoop：延迟删除模式 + 轴坐标快照
 
-**实现顺序**：
-1. Resource 实体
-2. Tree 实体
-3. WorldState（持有所有实体）
-4. 重构 SimulationLoop
-5. Agent FSM
-6. 更新 SnapshotData
-7. 前端多实体渲染
+**测试结果**：
+- ✅ 3 个 Agent 从 Tree (0,0) 出发
+- ✅ 正确寻路到 6 个 Resource
+- ✅ 采集后返回 Tree 存放
+- ✅ 状态机循环正常
+
+### Phase 2 客户端待实现
+
+1. **Hex 坐标转换**：
+   - 轴坐标 (Q, R) → 世界坐标 (x, y, z)
+   - Pointy-topped 公式
+
+2. **多 Agent 渲染**：
+   - 对象池管理
+   - 根据 Snapshot 更新所有 Agent 位置
+
+3. **插值优化**（可选）：
+   - 当前：简单 Lerp 追赶
+   - 未来：基于速度的平滑插值
 
 ---
 

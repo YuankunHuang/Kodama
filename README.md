@@ -49,8 +49,9 @@ dotnet build Kodama.Shared
 # → Kodama.Client/Assets/Plugins/Kodama.Shared.dll
 ```
 
-## 当前状态 (Phase 1 ✅ 已完成)
+## 当前状态
 
+### Phase 1 ✅ 已完成
 - [x] SignalR Hub 搭建
 - [x] 模拟循环 (10Hz Tick)
 - [x] Agent 圆周运动
@@ -58,12 +59,20 @@ dotnet build Kodama.Shared
 - [x] Unity 客户端连接
 - [x] 插值渲染
 
+### Phase 2 🔄 进行中（后端完成）
+- [x] Domain 实体（Agent, Resource, Tree）
+- [x] WorldState 容器（双字典索引 + BFS）
+- [x] Agent FSM（7 状态完整循环）
+- [x] SimulationLoop 重构（延迟删除 + 轴坐标）
+- [x] 后端测试验证（3 Agent 正确采集）
+- [ ] Unity 客户端更新（Hex 坐标转换 + 多 Agent 渲染）
+
 ## 开发路线图
 
 | Phase | 目标 | 状态 |
 |-------|------|------|
 | Phase 1 | 后端 MVP + 联调 | ✅ 已完成 |
-| Phase 2 | 资源采集循环 | ⏳ 待开始 |
+| Phase 2 | 资源采集循环 | 🔄 进行中（后端完成） |
 | Phase 3 | 500+ Agent 规模化 | ⏳ 待开始 |
 | Phase 4 | 视觉打磨 + 部署 | ⏳ 待开始 |
 
