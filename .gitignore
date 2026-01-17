@@ -108,6 +108,9 @@ ScaffoldingReadMe.txt
 # The packages folder can be ignored because of Package Restore
 **/[Pp]ackages/*
 !**/[Pp]ackages/build/
+# But KEEP Unity NuGet packages
+!Kodama.Client/Assets/Packages/
+!Kodama.Client/Assets/Packages/**
 
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
@@ -369,8 +372,10 @@ ExportedObj/
 Kodama.Client/*.csproj
 Kodama.Client/*.sln
 
-# But KEEP the Shared DLL in Unity Plugins folder
+# But KEEP DLLs in Unity Plugins folder and NuGet Packages folder
 !Kodama.Client/Assets/Plugins/*.dll
+!Kodama.Client/Assets/Plugins/**/*.dll
+!Kodama.Client/Assets/Packages/**/*.dll
 
 # Rider
 .idea/

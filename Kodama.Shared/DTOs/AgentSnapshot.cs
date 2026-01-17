@@ -6,14 +6,14 @@ namespace Kodama.Shared.DTOs
     public struct AgentSnapshot
     {
         public Guid Id { get; set; }
-        public float X { get; set; }
-        public float Y { get; set; }
+        public int Q { get; set; }
+        public int R { get; set; }
 
-        public AgentSnapshot(Guid id, float x, float y)
+        public AgentSnapshot(Guid id, int q, int r)
         {
             Id = id;
-            X = x;
-            Y = y;
+            Q = q;
+            R = r;
         }
     }
 }
