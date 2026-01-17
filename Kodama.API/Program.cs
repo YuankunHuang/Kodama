@@ -1,5 +1,6 @@
 using Kodama.Application.Interfaces;
 using Kodama.Application.Services;
+using Kodama.Application.States;
 using Kodama.Infrastructure.Hosting;
 using Kodama.Infrastructure.Hubs;
 using Kodama.Infrastructure.Services;
@@ -16,6 +17,8 @@ builder.Services.AddSignalR();
 builder.Services.AddHostedService<SimulationHostedServices>();
 builder.Services.AddSingleton<ISimulationLoop, SimulationLoop>();
 builder.Services.AddSingleton<IGameBroadcaster, SignalRBroadcaster>();
+builder.Services.AddSingleton<AgentBehaviourService>();
+builder.Services.AddSingleton<WorldState>();
 
 var app = builder.Build();
 

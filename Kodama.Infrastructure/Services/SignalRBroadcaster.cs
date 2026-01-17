@@ -17,7 +17,6 @@ public class SignalRBroadcaster : IGameBroadcaster
 
     public async Task BroadcastToAllClients(SnapshotData snapshot)
     {
-        // Phase 1: 使用 JSON 序列化，后续换成 MessagePack
         byte[] data = JsonSerializer.SerializeToUtf8Bytes(snapshot);
         await _hubContext.Clients.All.ReceiveSnapshot(data);
     }

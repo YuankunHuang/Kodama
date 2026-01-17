@@ -52,8 +52,8 @@ namespace YuankunHuang.Kodama.Render
             var elapsed = Time.time - _snapshotReceivedTime;
             var t = Mathf.Clamp01(elapsed / SnapshotInterval);
 
-            var prevPos = new Vector3(_prevSnapshot.Agents[0].X, _prevSnapshot.Agents[0].Y, 0);
-            var currPos = new Vector3(_currSnapshot.Agents[0].X, _currSnapshot.Agents[0].Y, 0);
+            var prevPos = new Vector3(_prevSnapshot.Agents[0].Q, _prevSnapshot.Agents[0].R, 0);
+            var currPos = new Vector3(_currSnapshot.Agents[0].Q, _currSnapshot.Agents[0].R, 0);
             _agent.position = Vector3.Lerp(prevPos, currPos, t);
         }
 

@@ -9,6 +9,8 @@ public class Agent
     public Position CurrentPosition { get; private set; } = null!;
     public AgentState State { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public long Inventory { get; private set; }
+    public Guid? HarvestingResourceId { get; private set; }
 
     private Agent()
     {
@@ -30,6 +32,26 @@ public class Agent
             State = AgentState.Idle,
             CreatedAt = DateTime.UtcNow,
         };
+    }
+
+    public void SetHarvestTarget(Guid resourceId)
+    {
+        HarvestingResourceId = resourceId;
+    }
+
+    public void ClearHarvestTarget()
+    {
+        HarvestingResourceId = null;
+    }
+
+    public void AddInventory(long amount)
+    {
+        Inventory = Math.Max(0, Inventory + amount);
+    }
+
+    public void ClearInventory()
+    {
+        Inventory = 0;
     }
 
     public void MoveTo(Position target)
