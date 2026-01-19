@@ -1,12 +1,12 @@
 # Project Design Document: KODAMA (Project Sim-Forest)
 
-**Version:** 1.0 **Type:** Distributed Real-Time Simulation / Infrastructure Showcase **Target Role:** Simulation & Infrastructure Engineer
+**Version:** 1.1 (Engineering Showcase Edition) **Type:** Distributed Real-Time Simulation / Infrastructure Showcase **Target Role:** Senior/Staff Simulation & Infrastructure Engineer
 
 ## 1. 项目愿景 (Project Vision)
 
 ### 1.1 核心概念 (High Concept)
 
-**"Kodama"** 是一个基于 **Server-Authoritative（服务器权威）** 架构的分布式生态仿真系统。 它模拟了一个由数千个自主代理（Agents）构成的“光之森林”生态。虽然其前端表现为唯美、治愈的 2.5D 生物发光世界，但其核心旨在展示**高并发状态同步**、**空间分区算法**、**资源竞争解决**以及**自动化扩张逻辑**等后端工程能力。
+**"Kodama"** 是一个基于 **Server-Authoritative（服务器权威）** 架构的分布式生态仿真系统。它模拟了一个由数千个自主代理（Agents）构成的“光之森林”生态。 **核心工程目标**：不仅仅是创造一个唯美的画面，而是构建一个**可观测、可验证、高性能**的分布式仿真沙盒，用于展示在 **High Concurrency (高并发)**、**Data-Oriented Design (面向数据设计)** 以及 **Microservices Architecture (微服务架构)** 领域的深厚造诣。
 
 ### 1.2 故事背景：光之协议 (The Protocol of Light)
 
@@ -14,9 +14,11 @@
 
 ### 1.3 体验目标 (Experience Goals)
 
-- **Visual:** 极简几何美学 + 极致的 Shader/VFX 表现（生物荧光、呼吸感）。
-- **Technical:** 展示数千个单位流畅运行的宏大感（Swarm Intelligence）。
-- **Emotional:** 从孤独的微光到辉煌的光之洪流，体验“复利增长”和“造物”的成就感。
+- **Visual:** 极简几何美学 + 极致的 Shader/VFX 表现。
+- **Technical (Updated):**
+  - **Massive Scale:** 展示单服承载 **5,000+** 动态代理的负载能力。
+  - **Observability:** 系统的内部状态（如空间划分、寻路网格、服务器Tick耗时）对开发者完全透明。
+- **Emotional:** 体验从混沌到秩序的“造物”成就感。
 
 ------
 
@@ -78,43 +80,33 @@
 
 ------
 
-## 4. 系统架构 (System Architecture) - **关键部分**
+## 4. 系统架构 (System Architecture) - **核心展示区**
 
 ### 4.1 技术栈 (Tech Stack)
 
-- **Backend:** ASP.NET Core 8.0/9.0 (C#).
+- **Backend:** ASP.NET Core 8.0 (C#).
 - **Frontend:** Unity 6 (C#).
-- **Communication:**
-  - **Real-time:** SignalR (WebSockets) + MessagePack/Protobuf (二进制压缩)。
-  - **Meta:** REST API (Login, Config).
-- **Database:** Redis (Hot Data/GameState), PostgreSQL (User Data/Replay Logs).
-- **Infra:** Docker, GitHub Actions.
+- **Communication:** SignalR (WebSockets) + MessagePack (Zero-allocation serialization).
+- **Infra:** Docker Compose, GitHub Actions.
 
 ### 4.2 后端核心模块 (Backend Modules)
 
 1. **Simulation Loop (Hosted Service):**
-   - 固定 Tick Rate (e.g., 10Hz or 20Hz)。
-   - 每帧执行：`UpdateAgents()` -> `CheckCollisions()` -> `RegenerateResources()` -> `BroadcastSnapshot()`.
+   - 严格的时间预算控制 (Time Budgeting)。如果 Tick 耗时超过阈值 (e.g., 50ms)，触发自动降级或报警。
 2. **Spatial Partitioning (空间分区):**
-   - 实现 **Spatial Hash Grid** 或 **QuadTree**。
-   - 用于 O(1) 或 O(log n) 复杂度查询“我周围有哪些单位”以及“最近的资源在哪里”。
-3. **Concurrency Control (并发控制):**
-   - 使用 `Interlocked` 或 Redis Distributed Lock 处理资源竞争（防止两个 Agent 吃掉同一个资源）。
+   - 实现 **Spatial Hash Grid**。
+   - **[Showcase Point]**: 对比测试“暴力遍历 (O(N^2))”与“空间哈希 (O(N))”的性能差异，并生成图表。
+3. **Data Structures (数据结构):**
+   - 使用 `Span<T>` 和 `ArrayPool<T>` 进行内存管理，追求 **Zero-Allocation**。
 
-### 4.3 网络协议设计 (Protocol Design)
+### 4.3 架构决策文档 (ADRs & Visualization) - **[NEW]**
 
-为了节省带宽，Snapshot 数据结构应极为精简：
+为了体现架构师思维，项目中必须包含以下文档产出：
 
-C#
-
-```
-// 伪代码示例
-struct SnapshotPacket {
-    long Timestamp;
-    List<AgentData> Agents; // 包含 ID, Position(x,y), StateEnum
-    List<EventData> Events; // 包含 "TreeSpawned", "EffectTriggered"
-}
-```
+- **C4 Model Diagrams:** 绘制 Context, Container, Component 三层架构图，清晰展示 Unity Client, Sim Server, Redis, Dashboard 之间的关系。
+- **Decision Records (决策记录):**
+  - *Why SignalR vs UDP?* (解释：为了Web兼容性与快速开发 vs 牺牲部分延迟，以及如何应用 MessagePack 弥补带宽)。
+  - *Why Deterministic?* (解释：锁帧同步的必要性与浮点数处理策略)。
 
 ------
 
@@ -122,56 +114,79 @@ struct SnapshotPacket {
 
 ### 5.1 表现层 (Presentation Layer)
 
-- **Dumb Client:** 客户端不计算任何游戏逻辑（不判断谁吃到了资源），只负责“画”。
-- **Interpolation (插值):** 服务器 10Hz，客户端 60Hz。
-  - 使用 `Vector3.Lerp` 在上一个快照和当前快照之间平滑过渡。
-  - 实现 **Entity Interpolation Buffer**。
+- **Dumb Client:** 客户端只负责渲染快照。
+- **Interpolation:** 实现 Snapshot Buffer，处理网络抖动 (Jitter)。
 
-### 5.2 性能优化 (Optimization)
+### 5.2 开发者调试视图 (Debug Visualization) - **[NEW]**
 
-- **GPU Instancing:** 渲染数千个相同的 Kodama 和 Hex 地块，必须使用 `DrawMeshInstanced` 或相关的 Shader 技术。
-- **Object Pooling:** 严格的对象池管理，杜绝运行时的 `Instantiate` 和 `Destroy`。
+为了证明“所见即所得”的控制力，客户端必须包含一个 **"Debug Overlay"** 开关：
+
+- **Grid View:** 在游戏世界中画出后端的 Spatial Hash Grid 网格线。
+- **Path Gizmos:** 实时画出选中 Agent 的服务器寻路路径。
+- **Server Ghost:** 用半透明红色线框显示 Agent 在服务器上的真实位置，与客户端插值位置做对比（直观展示 Lag Compensation）。
+
+### 5.3 性能优化 (Optimization)
+
+- **GPU Instancing:** 必须使用。
+- **Benchmark Mode:** 客户端内置“压力测试”按钮，一键生成 10,000 个静态单位，展示 FPS 依然稳定。
 
 ------
 
-## 6. 管理与监控 (Admin & Infra)
+## 6. 工程化展示 (Engineering Showcase) - **[重构章节]**
 
-### 6.1 Web Dashboard (God Console)
+本章节取代原本的“管理与监控”，旨在集中展示**硬核工程能力**。
 
-一个独立的 Web 页面 (Vue/React)，用于展示你的 Full-stack/Infra 能力。
+### 6.1 性能基准测试 (Hardcore Metrics)
 
-- **Live Charts:** 实时显示 QPS, Agent Count, Memory Usage.
-- **Tunables:** 滑块控制 `GlobalGravity` (引力), `SpawnRate` (刷新率)。拖动滑块，Unity 内世界物理规则实时改变。
+在 README 或专门的 `BENCHMARKS.md` 中展示以下数据：
+
+- **Throughput:** "单核支持 5,000 Agents @ 20Hz Tick Rate."
+- **Latency:** "平均 RTT < 50ms (Localhost), < 100ms (AWS)."
+- **Memory:** "GC Allocation < 1KB per Tick (Steady State)." —— **这是杀手级指标。**
+- **Optimization Comparison:** 附带优化前后的 Profiler 截图对比（例如：改为 Struct 后的内存变化）。
+
+### 6.2 实时监控面板 (The "God Console")
+
+Web Dashboard 不仅是游戏控制台，更是**服务器健康监视器**：
+
+- **Real-time Metrics:** 使用图表库 (Chart.js/ECharts) 实时绘制 Tick Duration (ms) 曲线。
+- **Heatmap:** 在网页上绘制 Agent 密度热力图，证明后端空间算法的正确性。
+
+### 6.3 自动化与质量 (CI/CD)
+
+- **Build Pipeline:** GitHub Actions 自动构建 Docker 镜像。
+- **Unit Tests:** 针对核心算法（如空间哈希、碰撞检测）编写单元测试，并显示覆盖率。
 
 ------
 
 ## 7. 开发路线图 (Development Roadmap)
 
-### Phase 1: The Pulse (MVP) - 预计耗时: 3天
+### Phase 1: Architecture Skeleton (3 Days)
 
-- **目标:** 后端跑通一个 Agent 的圆形运动，Unity 端平滑渲染。
-- **产出:** Hello World 级别的联调。
+- 搭建 .NET 8 + SignalR + Unity 通信闭环。
+- **产出:** C4 架构图初稿。
 
-### Phase 2: The Loop (核心循环) - 预计耗时: 1周
+### Phase 2: Core Loop & Visualization (1 Week)
 
-- **目标:** 引入资源和树。
-- **逻辑:** Agent 可以在后端寻找最近资源，移动，并运回。
-- **视觉:** 简单的发光球体和方块。
+- 实现资源采集循环。
+- **产出:** Unity 客户端的 Debug Gizmos (网格/路径显示)。
 
-### Phase 3: The Swarm (规模化) - 预计耗时: 2周
+### Phase 3: Performance & Optimization (2 Weeks) - **[Critical]**
 
-- **目标:** 500+ Agents 并发。
-- **技术:** 引入空间哈希网格，优化带宽 (Protobuf)。
-- **视觉:** 加入 Trail Renderer 和 Bloom，实现“光流”效果。
+- 引入 Spatial Hash Grid。
+- 重构代码以使用 `Span<T>` 和对象池。
+- **产出:** 压力测试，录制 "10,000 Agents" 的演示视频，截取 Profiler 数据。
 
-### Phase 4: The Polish (打磨) - 预计耗时: 1周
+### Phase 4: Polish & Portfolio Packaging (1 Week)
 
-- **目标:** 视觉升级与 Web 控制台。
-- **内容:** 加入“光之协议”的故事包装，音效，以及 Docker 部署。
+- Bloom/VFX 美术打磨。
+- 撰写 README，整理 Benchmarks 图表。
+- 部署 Demo。
 
 ------
 
-### 如何使用这份文档？
+### 给 AI 助手的 Prompt 示例 (Updated)
 
-- **发给 Claude/ChatGPT:** "请根据这份设计文档的 Phase 1 要求，为我生成 ASP.NET Core 的 Agent Class 基础代码和 Unity 端的插值移动脚本。"
-- **发给美术/Shader AI:** "基于 Visual Direction 章节，帮我写一个 Unity URP Shader Graph 节点的描述，实现‘边缘发光的果冻球体’效果。"
+- **架构:** "我需要为 Kodama 绘制 C4 模型图。请根据 Mermaid 语法，帮我生成 System Context 和 Container 两个层级的代码。"
+- **性能:** "我正在优化 C# 的 Spatial Grid。请帮我把这个使用 `List<T>` 的类重构为使用 `ArrayPool` 和 `ref struct` 的零分配版本。"
+- **测试:** "请为我的 `CollisionSystem.cs` 写一个单元测试，验证在高密度重叠下的边界情况。"
