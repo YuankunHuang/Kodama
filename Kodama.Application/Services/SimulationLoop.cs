@@ -7,11 +7,6 @@ using System.Diagnostics;
 
 namespace Kodama.Application.Services;
 
-public class ValueStopwatch
-{
-
-}
-
 public class SimulationLoop : ISimulationLoop
 {
     private readonly WorldState _worldState;
@@ -20,7 +15,7 @@ public class SimulationLoop : ISimulationLoop
     private readonly List<Guid> _agentsToRemove;
     private readonly Stopwatch _stopwatch;
 
-    private const int InitialAgentCount = 100000;
+    private const int InitialAgentCount = 5;
 
     public SimulationLoop(WorldState worldState, AgentBehaviourService agentBehaviourService)
     {
@@ -35,32 +30,31 @@ public class SimulationLoop : ISimulationLoop
 
     private void InitializeWorld()
     {
-        // Tree is already created in WorldState at (0,0)
         var treePos = _worldState.Tree.Position;
 
-        // Create 3 Agents at Tree position
         for (int i = 0; i < InitialAgentCount; i++)
         {
             var agent = Agent.Create(treePos);
             _worldState.SetAgent(agent);
         }
 
-        // Create Resources at various positions (pointy-top)
-        var radius = 8;
-        var resourcePositions = new Position[]
+        int[] radii = { 5, 8, 12, 16, 20, 24 };
+        long amountPerResource = 1000;
+        
+        (int dq, int dr)[] directions = 
         {
-            new (radius, -radius), // top right
-            new (radius, 0), // right
-            new (0, radius), // bottom right
-            new (-radius, radius), // bottom left
-            new (-radius, 0), // left
-            new (0, -radius), // top left
+            (1, -1), (1, 0), (0, 1),
+            (-1, 1), (-1, 0), (0, -1)
         };
 
-        foreach (var pos in resourcePositions)
+        foreach (var radius in radii)
         {
-            var resource = Resource.Create(Guid.NewGuid(), pos, amount: long.MaxValue);
-            _worldState.SetResource(resource);
+            foreach (var (dq, dr) in directions)
+            {
+                var pos = new Position(dq * radius, dr * radius);
+                var resource = Resource.Create(Guid.NewGuid(), pos, amountPerResource);
+                _worldState.SetResource(resource);
+            }
         }
 
         Console.WriteLine($"[SimulationLoop] World initialized: {_worldState.GetAgentCount()} agents, {_worldState.GetResourceCount()} resources");
@@ -95,7 +89,7 @@ public class SimulationLoop : ISimulationLoop
         var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
         var allocated = allocatedAfter - allocatedBefore;
 
-        Console.WriteLine($"{_worldState.GetAgentCount()} agents | TickTime: {_stopwatch.ElapsedMilliseconds:F2}ms | Alloc: {allocated} bytes");
+        // Console.WriteLine($"{_worldState.GetAgentCount()} agents | TickTime: {_stopwatch.ElapsedMilliseconds:F2}ms | Alloc: {allocated} bytes");
 
         return snapshotData;
     }

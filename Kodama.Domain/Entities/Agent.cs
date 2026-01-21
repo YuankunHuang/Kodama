@@ -12,6 +12,10 @@ public class Agent
     public long Inventory { get; private set; }
     public Guid? HarvestingResourceId { get; private set; }
 
+    public bool IsFull => Inventory >= Capacity;
+
+    private const long Capacity = 100;
+
     private Agent()
     {
         // Used by EF(EntityFramework) Core only - not exposed
@@ -37,6 +41,11 @@ public class Agent
     public void ClearHarvestTarget()
     {
         HarvestingResourceId = null;
+    }
+
+    public long GetRemainingCapacity()
+    {
+        return Capacity - Inventory;
     }
 
     public void AddInventory(long amount)

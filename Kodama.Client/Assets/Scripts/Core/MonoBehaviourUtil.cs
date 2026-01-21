@@ -16,6 +16,7 @@ namespace YuankunHuang.Kodama.Core
 
         private void Awake()
         {
+            Debug.Log($"[MonoBehaviourUtil] Awake");
             Instance = this;
         }
         

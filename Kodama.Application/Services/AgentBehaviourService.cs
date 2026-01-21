@@ -102,7 +102,8 @@ public class AgentBehaviourService
 
         // stay there and keep collecting
         var expected = 10;
-        var actual = res.Extract(expected);
+        var remainingCapacity = agent.GetRemainingCapacity();
+        var actual = res.Extract(Math.Min(expected, remainingCapacity));
         agent.AddInventory(actual);
 
         // check once again (after collecting)
@@ -110,6 +111,12 @@ public class AgentBehaviourService
         {
             res.Release();
             worldState.RemoveResource(res.Id);
+            agent.ClearHarvestTarget();
+            agent.ChangeState(AgentState.ReturningToBase);
+        }
+        else if (agent.IsFull)
+        {
+            res.Release();
             agent.ClearHarvestTarget();
             agent.ChangeState(AgentState.ReturningToBase);
         }
