@@ -1,14 +1,15 @@
 using System;
+using System.Collections.Generic;
 
 namespace Kodama.Shared.DTOs
 {
     [Serializable]
     public struct SnapshotData
     {
-        public AgentSnapshot[] Agents { get; set; }
+        public List<AgentSnapshot> Agents { get; set; }
         public long CreatedAt { get; set; }
 
-        public SnapshotData(AgentSnapshot[] agents, long createdAt)
+        public SnapshotData(List<AgentSnapshot> agents, long createdAt)
         {
             Agents = agents;
             CreatedAt = createdAt;

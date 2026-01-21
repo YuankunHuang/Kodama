@@ -17,12 +17,29 @@ public class SimulationHostedServices : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         const float deltaTime = 0.1f;
+        const float maxDelayTolerance = 1000f;
+        TimeSpan interval = TimeSpan.FromMilliseconds(100);
+        var nextTickTime = DateTime.UtcNow;
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            nextTickTime += interval;
             var snapshot = _simulationLoop.Tick(deltaTime);
             await _broadcaster.BroadcastToAllClients(snapshot);
-            await Task.Delay(100, stoppingToken);
+            var delay = nextTickTime - DateTime.UtcNow;
+            if (delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay, stoppingToken);
+            }
+            else
+            {
+                // delayed...
+                if (delay < TimeSpan.FromMilliseconds(-maxDelayTolerance)) // too much! can't catch up. reset tick time
+                {
+                    nextTickTime = DateTime.UtcNow;
+                    Console.WriteLine($"[Warning] Simulation fell behind, resetting time.");
+                }
+            }
         }
     }
 }
