@@ -163,38 +163,27 @@ public class WorldState
     }
     #endregion
 
-    // BFS
-    public Resource? FindNearestAvailableResource(Position from, int maxDistance = 50)
+    public Resource? FindNearestAvailableResource(Position from)
     {
-        var visited = new HashSet<Position>();
-        var q = new Queue<Position>();
-        q.Enqueue(from);
-        visited.Add(from);
-        
-        while (q.Count > 0)
+        // DOD > OOP :D
+        // traverse all Resources from the god view, return the nearest one
+        var minDistance = int.MaxValue;
+        Resource? nearestRes = null;
+        foreach (var res in GetAllResources())
         {
-            var pos = q.Dequeue();
-            if (_resourcesByPosition.TryGetValue(pos, out var resources))
+            if (!res.IsAvailable)
             {
-                foreach (var resource in resources)
-                {
-                    if (resource.IsAvailable)
-                    {
-                        return resource;
-                    }
-                }
+                continue;
             }
 
-            foreach (var neighbour in pos.GetNeighbors())
+            var dist = from.DistanceTo(res.Position);
+            if (dist < minDistance)
             {
-                if (from.DistanceTo(neighbour) <= maxDistance &&
-                    visited.Add(neighbour))
-                {
-                    q.Enqueue(neighbour);
-                }
+                minDistance = dist;
+                nearestRes = res;
             }
         }
 
-        return null;
+        return nearestRes;
     }
 }

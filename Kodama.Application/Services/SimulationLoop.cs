@@ -3,6 +3,7 @@ using Kodama.Application.Interfaces;
 using Kodama.Application.States;
 using Kodama.Domain.Entities;
 using Kodama.Domain.ValueObjects;
+using System.Diagnostics;
 
 namespace Kodama.Application.Services;
 
@@ -10,11 +11,17 @@ public class SimulationLoop : ISimulationLoop
 {
     private readonly WorldState _worldState;
     private readonly AgentBehaviourService _agentBehaviourService;
+    private readonly List<AgentSnapshot> _agentSnapshots;
+    private readonly List<Guid> _agentsToRemove;
+
+    private const int InitialAgentCount = 10000;
 
     public SimulationLoop(WorldState worldState, AgentBehaviourService agentBehaviourService)
     {
         _worldState = worldState;
         _agentBehaviourService = agentBehaviourService;
+        _agentSnapshots = new(InitialAgentCount);
+        _agentsToRemove = new(128);
 
         InitializeWorld();
     }
@@ -25,26 +32,27 @@ public class SimulationLoop : ISimulationLoop
         var treePos = _worldState.Tree.Position;
 
         // Create 3 Agents at Tree position
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < InitialAgentCount; i++)
         {
             var agent = Agent.Create(treePos);
             _worldState.SetAgent(agent);
         }
 
-        // Create Resources at various positions
-        var resourcePositions = new[]
+        // Create Resources at various positions (pointy-top)
+        var radius = 8;
+        var resourcePositions = new Position[]
         {
-            new Position(3, -3),   // top-right
-            new Position(-3, 3),   // bottom-left
-            new Position(4, 0),    // right
-            new Position(-4, 0),   // left
-            new Position(0, 4),    // bottom
-            new Position(0, -4),   // top
+            new (radius, -radius), // top right
+            new (radius, 0), // right
+            new (0, radius), // bottom right
+            new (-radius, radius), // bottom left
+            new (-radius, 0), // left
+            new (0, -radius), // top left
         };
 
         foreach (var pos in resourcePositions)
         {
-            var resource = Resource.Create(Guid.NewGuid(), pos, amount: 100);
+            var resource = Resource.Create(Guid.NewGuid(), pos, amount: long.MaxValue);
             _worldState.SetResource(resource);
         }
 
@@ -53,33 +61,38 @@ public class SimulationLoop : ISimulationLoop
 
     public SnapshotData Tick(float deltaTime)
     {
-        List<Guid>? toRemove = null;
+        var sw = Stopwatch.StartNew();
+
+        _agentsToRemove.Clear();
 
         foreach (var agent in _worldState.GetAllAgents())
         {
             _agentBehaviourService.Process(agent, _worldState, deltaTime);
             if (agent.State == Domain.Enums.AgentState.Dead)
             {
-                toRemove ??= new List<Guid>();
-                toRemove.Add(agent.Id);
+                _agentsToRemove.Add(agent.Id);
             }
         }
 
-        if (toRemove != null)
+        if (_agentsToRemove.Count > 0)
         {
-            foreach (var id in toRemove)
+            foreach (var id in _agentsToRemove)
             {
                 _worldState.RemoveAgent(id);
             }
         }
 
-        return GenerateSnapshot();
+        var snapshotData = GenerateSnapshot();
+
+        sw.Stop();
+        Console.WriteLine($"Tick Time: {sw.Elapsed.TotalMilliseconds:F2}ms");
+
+        return snapshotData;
     }
 
     private SnapshotData GenerateSnapshot()
     {
-        var agentSnapshots = new AgentSnapshot[_worldState.GetAgentCount()];
-        var i = 0;
+        _agentSnapshots.Clear();
         foreach (var agent in _worldState.GetAllAgents())
         {
             var agentSnapshot = new AgentSnapshot()
@@ -88,14 +101,12 @@ public class SimulationLoop : ISimulationLoop
                 Q = agent.CurrentPosition.Q,
                 R = agent.CurrentPosition.R,
             };
-            agentSnapshots[i++] = agentSnapshot;
-
-            Console.WriteLine($"Id: {agentSnapshot.Id} | Q: {agentSnapshot.Q} | R: {agentSnapshot.R}");
+            _agentSnapshots.Add(agentSnapshot);
         }
 
         var snapShotData = new SnapshotData()
         {
-            Agents = agentSnapshots,
+            Agents = _agentSnapshots,
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         };
         return snapShotData;
