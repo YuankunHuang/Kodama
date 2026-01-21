@@ -5,7 +5,7 @@ namespace Kodama.Domain.Entities;
 public class Tree
 {
     public Guid Id { get; private set; }
-    public Position Position { get; private set; } = null!;
+    public Position Position { get; private set; }
     public long Matter { get; private set; }
 
     private Tree()

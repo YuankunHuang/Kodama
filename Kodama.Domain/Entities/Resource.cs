@@ -5,7 +5,7 @@ namespace Kodama.Domain.Entities;
 public class Resource
 {
     public Guid Id { get; private set; }
-    public Position Position { get; private set; } = null!;
+    public Position Position { get; private set; }
     public long Amount { get; private set; }
     public Guid? Owner { get; private set; }
 

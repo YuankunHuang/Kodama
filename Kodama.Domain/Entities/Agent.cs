@@ -6,7 +6,7 @@ namespace Kodama.Domain.Entities;
 public class Agent
 {
     public Guid Id { get; private set; }
-    public Position CurrentPosition { get; private set; } = null!;
+    public Position CurrentPosition { get; private set; }
     public AgentState State { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public long Inventory { get; private set; }
@@ -20,12 +20,7 @@ public class Agent
     // factory
     public static Agent Create(Position startPosition)
     {
-        if (startPosition == null)
-        {
-            throw new ArgumentNullException(nameof(startPosition));
-        }
-
-        return new Agent()
+        return new Agent
         {
             Id = Guid.NewGuid(),
             CurrentPosition = startPosition,
@@ -59,11 +54,6 @@ public class Agent
         if (State == AgentState.Dead)
         {
             throw new InvalidOperationException("Dead agent cannot move");
-        }
-
-        if (target == null)
-        {
-            throw new ArgumentNullException(nameof(target));
         }
 
         CurrentPosition = target;
