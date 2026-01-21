@@ -4,7 +4,7 @@ namespace Kodama.Domain.ValueObjects;
 /// Axial Coordinates
 /// </summary>
 /// https://www.redblobgames.com/grids/hexagons/#coordinates-axial
-public record Position(int Q, int R)
+public record struct Position(int Q, int R)
 {
     public int DistanceTo(Position other)
     {

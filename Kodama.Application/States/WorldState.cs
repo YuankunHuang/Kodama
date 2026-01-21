@@ -44,10 +44,10 @@ public class WorldState
         return null;
     }
 
-    public IEnumerable<Agent> GetAllAgents() => _agents.Values;
-    public IEnumerable<Resource> GetAllResources() => _resources.Values;
+    public Dictionary<Guid, Agent>.ValueCollection GetAllAgents() => _agents.Values;
+    public Dictionary<Guid, Resource>.ValueCollection GetAllResources() => _resources.Values;
 
-    public IReadOnlyCollection<Agent>? GetAgentsByPosition(Position position)
+    public HashSet<Agent>? GetAgentsByPosition(Position position)
     {
         if (_agentsByPosition.TryGetValue(position, out var agents))
         {
@@ -56,7 +56,7 @@ public class WorldState
         return null;
     }
 
-    public IReadOnlyCollection<Resource>? GetResourcesByPosition(Position position)
+    public HashSet<Resource>? GetResourcesByPosition(Position position)
     {
         if (_resourcesByPosition.TryGetValue(position, out var resources))
         {
