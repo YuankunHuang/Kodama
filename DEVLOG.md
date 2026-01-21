@@ -1,8 +1,8 @@
 # Kodama 开发日志 (Development Log)
 
 **项目启动日期**: 2026-01-13  
-**当前阶段**: Phase 2 - The Loop (核心循环) 🔄 进行中  
-**下一阶段**: Phase 3 - The Swarm (规模化)
+**当前阶段**: Phase 2 - Unity 可视化 🔄 进行中  
+**下一阶段**: Demo 视频录制 + 简历更新
 
 ---
 
@@ -146,6 +146,32 @@ Kodama.Client/
 - 符合 Swarm 美学：分散采集形成"光流"效果
 - YAGNI：Phase 3 需要共享采集再扩展
 
+### ADR-011: 零分配热路径设计
+**日期**: 2026-01-20  
+**决策**: 消除 Tick 循环中的所有堆分配  
+**理由**:
+- 避免 GC 暂停导致的卡顿
+- 支持 100K+ Agent 规模
+- 符合 Data-Oriented Design 原则
+
+**实现细节**:
+- 返回 `Dictionary.ValueCollection` 而非 `IEnumerable<T>`（避免 enumerator Boxing）
+- `Position` 使用 `record struct`（值类型，栈分配）
+- 自定义 `NeighboursEnumerator` struct（Duck Typing 模式）
+- 预分配 `List<T>` 并 `Clear()` 重用
+
+### ADR-012: GPU Instancing 渲染策略
+**日期**: 2026-01-20  
+**决策**: 使用 `Graphics.DrawMeshInstanced` 而非 GameObject 对象池  
+**理由**:
+- 单 Draw Call 渲染 1023 个实例
+- CPU 开销极低，适合大规模场景
+- 对于 10K agents，约 10 个 Draw Calls（完全可接受）
+
+**备选方案**:
+- `RenderMeshIndirect`：更高性能但需手写 Shader
+- 决定 YAGNI，当前方案已满足需求
+
 ---
 
 ## 🐛 问题与解决方案
@@ -224,9 +250,68 @@ public static Entity Create(...) {
 }
 ```
 
+### Boxing 陷阱（C# 性能关键）
+```csharp
+// ❌ 接口返回导致 Boxing
+public IEnumerable<Agent> GetAllAgents() => _agents.Values;
+// 问题：Dictionary.ValueCollection 是 struct，转 IEnumerable 时被 Boxing 到堆
+
+// ✅ 返回具体类型，避免 Boxing
+public Dictionary<Guid, Agent>.ValueCollection GetAllAgents() => _agents.Values;
+// 编译器直接使用 struct enumerator，零分配
+```
+
+### Duck Typing 枚举器（foreach 的秘密）
+```csharp
+// C# 的 foreach 不检查接口，只需要：
+// 1. 对象有 GetEnumerator() 方法
+// 2. 返回的东西有 Current 属性和 MoveNext() 方法
+
+public struct NeighboursEnumerator
+{
+    private int _index;
+    public Position Current => /* ... */;
+    public bool MoveNext() => ++_index < 6;
+    public NeighboursEnumerator GetEnumerator() => this; // 返回自己！
+}
+
+// 这样就能 foreach，完全零分配！
+foreach (var n in position.GetNeighbors()) { }
+```
+
+### GPU Instancing 核心概念
+```csharp
+// 传统：每个对象一个 GameObject + Draw Call
+// Instancing：一次 Draw Call 渲染 N 个实例
+
+Matrix4x4[] matrices = new Matrix4x4[count];
+for (int i = 0; i < count; i++)
+    matrices[i] = Matrix4x4.TRS(positions[i], rotation, scale);
+
+Graphics.DrawMeshInstanced(mesh, 0, material, matrices, count);
+// 一次调用渲染所有！
+```
+
 ---
 
 ## 🔄 更新日志
+
+### 2026-01-20
+- 🚀 **后端性能优化冲刺**
+- **零分配优化**：
+  - 消除 `IEnumerable` 返回类型导致的 Boxing
+  - `GetAllAgents()` 返回 `Dictionary.ValueCollection` 而非接口
+  - `Position` 改为 `record struct`（值类型）
+  - 自定义 `NeighboursEnumerator`（Duck Typing 模式）
+  - 达成：**100,000 agents @ 13ms @ 0 bytes 稳态分配**
+- **Unity 客户端重构**：
+  - 实现 `HexUtils.HexToWorld()` 坐标转换
+  - 实现 `InstancedRenderer`（GPU Instancing 批量渲染）
+  - 重构 `RenderManager`（多 Agent 插值 + 渲染）
+  - 使用 `Graphics.DrawMeshInstanced` 单 Draw Call 渲染
+- **Agent 采集增强**：
+  - 添加 `Capacity` 和 `IsFull` 属性
+  - 装满后返回 Tree
 
 ### 2026-01-17
 - ✅ Phase 2 后端完成
@@ -269,41 +354,30 @@ public static Entity Create(...) {
 
 ## 📌 下次开发提醒
 
-**当前位置**: Phase 2 后端完成，准备更新客户端  
-**下一步**: Unity 客户端渲染更新
+**当前位置**: Phase 2 Unity 可视化 80% 完成  
+**下一步**: 完成 Demo 视频录制
 
-### Phase 2 后端已完成
+### 后端性能成果 ✅
 
-**核心实体**：
-- ✅ Agent：状态机 + 库存 + 目标追踪
-- ✅ Resource：独占采集 + 耗尽检测
-- ✅ Tree：物质存储
-- ✅ Position：六边形坐标 + 距离计算
+| 指标 | 目标 | 达成 |
+|------|------|------|
+| Agent 数量 | 5,000+ | **100,000** |
+| Tick Time | <5ms | **13ms @ 100K** |
+| 分配 | 0 bytes | **0 bytes 稳态** |
 
-**业务逻辑**：
-- ✅ WorldState：双字典索引（ID + Position）+ BFS 搜索
-- ✅ AgentBehaviorService：完整 FSM（7 状态）
-- ✅ SimulationLoop：延迟删除模式 + 轴坐标快照
+### Unity 客户端已完成
 
-**测试结果**：
-- ✅ 3 个 Agent 从 Tree (0,0) 出发
-- ✅ 正确寻路到 6 个 Resource
-- ✅ 采集后返回 Tree 存放
-- ✅ 状态机循环正常
+- ✅ `HexUtils.HexToWorld()` 坐标转换
+- ✅ `InstancedRenderer` GPU Instancing 批量渲染
+- ✅ `RenderManager` 多 Agent 插值 + 渲染
+- ✅ ShaderGraph 发光材质
 
-### Phase 2 客户端待实现
+### 待完成
 
-1. **Hex 坐标转换**：
-   - 轴坐标 (Q, R) → 世界坐标 (x, y, z)
-   - Pointy-topped 公式
-
-2. **多 Agent 渲染**：
-   - 对象池管理
-   - 根据 Snapshot 更新所有 Agent 位置
-
-3. **插值优化**（可选）：
-   - 当前：简单 Lerp 追赶
-   - 未来：基于速度的平滑插值
+1. **资源分布调整**：多半径生成资源，让 Agent 动态可观测
+2. **可选：Bloom 后处理**：增强发光效果
+3. **可选：性能 UI**：显示 Agent 数量、FPS
+4. **录制 Demo 视频**：15-30 秒，展示大规模 Agent 流畅运动
 
 ---
 
@@ -319,7 +393,16 @@ public static Entity Create(...) {
 
 **评价**: 架构扎实，代码清晰。特别是 MonoBehaviourUtil 的对象池设计和 EventBus 的类型安全检查，展现了专业水平。
 
+### 性能优化审查 ✅ (2026-01-20)
+- [x] 消除热路径 Boxing
+- [x] 正确使用 Duck Typing 枚举器
+- [x] 理解 record struct vs record class
+- [x] GPU Instancing 正确实现
+- [x] GC 分配测量方法掌握
+
+**评价**: 展现了对 C# 性能优化的深刻理解。从 400KB/tick 降到 0 bytes，并能解释原因（Boxing），这是 Senior 级别的优化能力。
+
 ---
 
-**最后更新**: 2026-01-14  
+**最后更新**: 2026-01-20  
 **更新者**: Technical Mentor
