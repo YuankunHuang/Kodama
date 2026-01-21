@@ -20,7 +20,7 @@ public class SimulationLoop : ISimulationLoop
     private readonly List<Guid> _agentsToRemove;
     private readonly Stopwatch _stopwatch;
 
-    private const int InitialAgentCount = 10000;
+    private const int InitialAgentCount = 100000;
 
     public SimulationLoop(WorldState worldState, AgentBehaviourService agentBehaviourService)
     {
