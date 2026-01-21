@@ -7,12 +7,18 @@ using System.Diagnostics;
 
 namespace Kodama.Application.Services;
 
+public class ValueStopwatch
+{
+
+}
+
 public class SimulationLoop : ISimulationLoop
 {
     private readonly WorldState _worldState;
     private readonly AgentBehaviourService _agentBehaviourService;
     private readonly List<AgentSnapshot> _agentSnapshots;
     private readonly List<Guid> _agentsToRemove;
+    private readonly Stopwatch _stopwatch;
 
     private const int InitialAgentCount = 10000;
 
@@ -22,6 +28,7 @@ public class SimulationLoop : ISimulationLoop
         _agentBehaviourService = agentBehaviourService;
         _agentSnapshots = new(InitialAgentCount);
         _agentsToRemove = new(128);
+        _stopwatch = new();
 
         InitializeWorld();
     }
@@ -61,13 +68,15 @@ public class SimulationLoop : ISimulationLoop
 
     public SnapshotData Tick(float deltaTime)
     {
-        var sw = Stopwatch.StartNew();
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+
+        _stopwatch.Restart();
 
         _agentsToRemove.Clear();
 
         foreach (var agent in _worldState.GetAllAgents())
         {
-            _agentBehaviourService.Process(agent, _worldState, deltaTime);
+            _agentBehaviourService.Process(agent, _worldState, deltaTime); // 399760 B/s
             if (agent.State == Domain.Enums.AgentState.Dead)
             {
                 _agentsToRemove.Add(agent.Id);
@@ -83,9 +92,10 @@ public class SimulationLoop : ISimulationLoop
         }
 
         var snapshotData = GenerateSnapshot();
+        var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
+        var allocated = allocatedAfter - allocatedBefore;
 
-        sw.Stop();
-        Console.WriteLine($"Tick Time: {sw.Elapsed.TotalMilliseconds:F2}ms");
+        Console.WriteLine($"{_worldState.GetAgentCount()} agents | TickTime: {_stopwatch.ElapsedMilliseconds:F2}ms | Alloc: {allocated} bytes");
 
         return snapshotData;
     }
