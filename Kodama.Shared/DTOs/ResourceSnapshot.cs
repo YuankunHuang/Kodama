@@ -5,7 +5,7 @@ namespace Kodama.Shared.DTOs
 {
     [Serializable]
     [MessagePackObject]
-    public struct AgentSnapshot
+    public struct ResourceSnapshot
     {
         [Key(0)]
         public int Id { get; set; }
@@ -14,7 +14,7 @@ namespace Kodama.Shared.DTOs
         [Key(2)]
         public int R { get; set; }
 
-        public AgentSnapshot(int id, int q, int r)
+        public ResourceSnapshot(int id, int q, int r)
         {
             Id = id;
             Q = q;

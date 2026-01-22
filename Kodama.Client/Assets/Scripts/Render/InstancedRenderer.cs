@@ -15,12 +15,12 @@ namespace YuankunHuang.Kodama.Render
             _matrices = new Matrix4x4[1023];
         }
 
-        public void Render(Vector3[] positions)
+        public void Render(Vector3[] positions, Vector3 scale)
         {
             var batchedCount = 0;
             for (var i = 0; i < positions.Length; ++i)
             {
-                _matrices[batchedCount] = Matrix4x4.TRS(positions[i], Quaternion.identity, Vector3.one);
+                _matrices[batchedCount] = Matrix4x4.TRS(positions[i], Quaternion.identity, scale);
                 ++batchedCount;
 
                 if (batchedCount == _matrices.Length) // render batch + increment counter

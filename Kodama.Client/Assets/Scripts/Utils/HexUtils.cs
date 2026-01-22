@@ -4,14 +4,14 @@ namespace YuankunHuang.Kodama.Utils
 {
     public static class HexUtils
     {
-        private const float Sqrt3Over2 = 0.866025404f;
-        private const float HexSize = 1f; // hexagon "radius"
+        private const float Sqrt3 = 1.732050808f;
+        private const float HexSize = 1f;
 
         public static Vector3 HexToWorld(int q, int r)
         {
-            float x = HexSize * (q * Sqrt3Over2);
-            float y = HexSize * (q * 0.5f - r);
-            return new Vector3(x, y, 0);
+            float x = HexSize * Sqrt3 * (q + r * 0.5f);
+            float z = HexSize * 1.5f * r;
+            return new Vector3(x, 0, z);
         }
     }
 }

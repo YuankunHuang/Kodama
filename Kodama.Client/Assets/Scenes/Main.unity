@@ -150,6 +150,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   _agentMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   _agentMaterial: {fileID: 2100000, guid: 1e2293efa9a79074ebdcdd81790a64a9, type: 2}
+  _agentScale: {x: 0.25, y: 0.25, z: 0.25}
+  _treeMesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  _treeMaterial: {fileID: 2100000, guid: 15e854db060b50d4181d457c15f40ea8, type: 2}
+  _treeScale: {x: 3, y: 5, z: 3}
+  _resourceMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  _resourceMaterial: {fileID: 2100000, guid: 24ed761c69be0ae468aea6845a6642b6, type: 2}
+  _resourceScale: {x: 0.5, y: 0.5, z: 0.5}
 --- !u!4 &69848232
 Transform:
   m_ObjectHideFlags: 0
@@ -226,8 +233,8 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
-  orthographic: 1
-  orthographic size: 30
+  orthographic: 0
+  orthographic size: 80
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -251,13 +258,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -50}
+  m_LocalRotation: {x: 0.46174863, y: 0, z: 0, w: 0.8870109}
+  m_LocalPosition: {x: 0, y: 90, z: -90}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 55, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -302,6 +309,53 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1 &350247925
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 350247926}
+  - component: {fileID: 350247927}
+  m_Layer: 0
+  m_Name: HexGrid
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &350247926
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 350247925}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &350247927
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 350247925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a22fa77df034d74e83da6215b5ea521, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YuankunHuang.Kodama.Render.HexGridRenderer
+  _lineMaterial: {fileID: 2100000, guid: ffc87ff92735ba24c9604a30e5d141ec, type: 2}
+  _gridRadius: 60
+  _lineColor: {r: 0.2, g: 0.3, b: 0.4, a: 0.101960786}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -481,3 +535,4 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 69848232}
   - {fileID: 1727364351}
+  - {fileID: 350247926}

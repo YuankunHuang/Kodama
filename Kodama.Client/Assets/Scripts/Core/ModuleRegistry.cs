@@ -36,7 +36,12 @@ namespace YuankunHuang.Kodama.Core
 
         public static T Get<T>() where T : class, IModule
         {
-            return _modules[typeof(T)] as T;
+            if (_modules.TryGetValue(typeof(T), out var module))
+            {
+                return module as T;
+            }
+
+            return null;
         }
 
         public static bool TryGet<T>(out T module) where T : class, IModule
