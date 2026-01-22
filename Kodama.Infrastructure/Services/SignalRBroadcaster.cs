@@ -1,4 +1,4 @@
-using System.Text.Json;
+using MessagePack;
 using Kodama.Shared.DTOs;
 using Kodama.Application.Interfaces;
 using Kodama.Infrastructure.Hubs;
@@ -17,7 +17,7 @@ public class SignalRBroadcaster : IGameBroadcaster
 
     public async Task BroadcastToAllClients(SnapshotData snapshot)
     {
-        byte[] data = JsonSerializer.SerializeToUtf8Bytes(snapshot);
+        byte[] data = MessagePackSerializer.Serialize(snapshot);
         await _hubContext.Clients.All.ReceiveSnapshot(data);
     }
 }

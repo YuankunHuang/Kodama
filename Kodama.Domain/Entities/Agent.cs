@@ -5,12 +5,12 @@ namespace Kodama.Domain.Entities;
 
 public class Agent
 {
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
     public Position CurrentPosition { get; private set; }
     public AgentState State { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public long Inventory { get; private set; }
-    public Guid? HarvestingResourceId { get; private set; }
+    public int? HarvestingResourceId { get; private set; }
 
     public bool IsFull => Inventory >= Capacity;
 
@@ -22,18 +22,18 @@ public class Agent
     }
 
     // factory
-    public static Agent Create(Position startPosition)
+    public static Agent Create(int id, Position startPosition)
     {
         return new Agent
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             CurrentPosition = startPosition,
             State = AgentState.Idle,
             CreatedAt = DateTime.UtcNow,
         };
     }
 
-    public void SetHarvestTarget(Guid resourceId)
+    public void SetHarvestTarget(int resourceId)
     {
         HarvestingResourceId = resourceId;
     }

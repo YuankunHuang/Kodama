@@ -47,9 +47,10 @@ public class AgentBehaviourService
         // try release resource
         if (agent.HarvestingResourceId != null)
         {
-            var res = worldState.GetResource((Guid)agent.HarvestingResourceId);
+            var res = worldState.GetResource((int)agent.HarvestingResourceId);
             if (res != null)
             {
+                worldState.MarkResourceAvailable(res);
                 res.Release();
             }
         }
@@ -87,7 +88,7 @@ public class AgentBehaviourService
         }
 
         // res became unavailable
-        var res = worldState.GetResource((Guid)agent.HarvestingResourceId);
+        var res = worldState.GetResource((int)agent.HarvestingResourceId);
         if (res == null || res.IsDepleted)
         {
             // resource gone, erase it & agent will return to Tree & deposit
@@ -117,6 +118,7 @@ public class AgentBehaviourService
         else if (agent.IsFull)
         {
             res.Release();
+            worldState.MarkResourceAvailable(res);
             agent.ClearHarvestTarget();
             agent.ChangeState(AgentState.ReturningToBase);
         }
@@ -131,7 +133,7 @@ public class AgentBehaviourService
             return;
         }
 
-        var res = worldState.GetResource((Guid)agent.HarvestingResourceId);
+        var res = worldState.GetResource((int)agent.HarvestingResourceId);
         if (res == null)
         {
             agent.ChangeState(AgentState.ReturningToBase);
@@ -152,9 +154,15 @@ public class AgentBehaviourService
 
     private void ProcessFindingResource(Agent agent, WorldState worldState)
     {
+        if (worldState.GetAvailableResources().Count < 1) // no available resource, do nothing
+        {
+            return;
+        }
+
         var res = worldState.FindNearestAvailableResource(agent.CurrentPosition);
         if (res != null && res.Claim(agent.Id))
         {
+            worldState.MarkResourceUnavailable(res);
             agent.SetHarvestTarget(res.Id);
             agent.ChangeState(Domain.Enums.AgentState.MovingToResource);
         }

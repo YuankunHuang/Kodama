@@ -12,16 +12,21 @@ public class SimulationLoop : ISimulationLoop
     private readonly WorldState _worldState;
     private readonly AgentBehaviourService _agentBehaviourService;
     private readonly List<AgentSnapshot> _agentSnapshots;
-    private readonly List<Guid> _agentsToRemove;
+    private readonly List<ResourceSnapshot> _resourceSnapshots;
+    private readonly List<int> _agentsToRemove;
     private readonly Stopwatch _stopwatch;
 
-    private const int InitialAgentCount = 5;
+    // Configurable: Agent count determines map scale
+    private const int InitialAgentCount = 10000;
+    private const int ResourcesPerRing = 12; // Resources per radius ring
+    private const int MapRadius = 50; // Max hex distance from center
 
     public SimulationLoop(WorldState worldState, AgentBehaviourService agentBehaviourService)
     {
         _worldState = worldState;
         _agentBehaviourService = agentBehaviourService;
         _agentSnapshots = new(InitialAgentCount);
+        _resourceSnapshots = new(ResourcesPerRing * MapRadius);
         _agentsToRemove = new(128);
         _stopwatch = new();
 
@@ -32,32 +37,67 @@ public class SimulationLoop : ISimulationLoop
     {
         var treePos = _worldState.Tree.Position;
 
+        // Spawn agents at tree position (center of the world)
         for (int i = 0; i < InitialAgentCount; i++)
         {
-            var agent = Agent.Create(treePos);
+            var agent = Agent.Create(_worldState.AllocateAgentId(), treePos);
             _worldState.SetAgent(agent);
         }
 
-        int[] radii = { 5, 8, 12, 16, 20, 24 };
-        long amountPerResource = 1000;
-        
-        (int dq, int dr)[] directions = 
-        {
-            (1, -1), (1, 0), (0, 1),
-            (-1, 1), (-1, 0), (0, -1)
-        };
+        // Generate resources in hexagonal ring pattern
+        // Each ring is a perfect hexagon at distance 'radius' from center
+        const long AmountPerResource = 10000; // Large amount so resources don't deplete quickly
 
-        foreach (var radius in radii)
+        for (var radius = 8; radius <= MapRadius; radius += 3)
         {
-            foreach (var (dq, dr) in directions)
+            // Hexagonal ring has exactly 6*radius positions
+            var totalPositionsInRing = radius * 6;
+            
+            // Scale resource count with ring size (bigger rings = more resources)
+            var resourceCount = Math.Max(6, radius / 2);
+            
+            // Distribute resources evenly around the ring
+            for (var i = 0; i < resourceCount; i++)
             {
-                var pos = new Position(dq * radius, dr * radius);
-                var resource = Resource.Create(Guid.NewGuid(), pos, amountPerResource);
+                // Evenly sample positions around the ring
+                var ringIndex = (totalPositionsInRing * i) / resourceCount;
+                
+                Position resourcePos = GetHexRingPosition(radius, ringIndex);
+                var resource = Resource.Create(_worldState.AllocateResourceId(), resourcePos, AmountPerResource);
+                
                 _worldState.SetResource(resource);
             }
         }
 
         Console.WriteLine($"[SimulationLoop] World initialized: {_worldState.GetAgentCount()} agents, {_worldState.GetResourceCount()} resources");
+    }
+
+    private Position GetHexRingPosition(int radius, int index)
+    {
+        // Pointy-top hex
+        (int dq, int dr)[] directions = 
+        {
+            (1, 0),   // Right
+            (0, 1),   // BottomRight
+            (-1, 1),  // BottomLeft
+            (-1, 0),  // Left
+            (0, -1),  // TopLeft
+            (1, -1)   // TopRight
+        };
+        
+        int side = index / radius;
+        int offset = index % radius;
+        
+        if (side >= 6) side = 5; // protect bound
+        
+        int q = directions[side].dq * radius;
+        int r = directions[side].dr * radius;
+        
+        int nextSide = (side + 2) % 6;
+        q += directions[nextSide].dq * offset;
+        r += directions[nextSide].dr * offset;
+        
+        return new Position(q, r);
     }
 
     public SnapshotData Tick(float deltaTime)
@@ -70,7 +110,7 @@ public class SimulationLoop : ISimulationLoop
 
         foreach (var agent in _worldState.GetAllAgents())
         {
-            _agentBehaviourService.Process(agent, _worldState, deltaTime); // 399760 B/s
+            _agentBehaviourService.Process(agent, _worldState, deltaTime);
             if (agent.State == Domain.Enums.AgentState.Dead)
             {
                 _agentsToRemove.Add(agent.Id);
@@ -89,30 +129,52 @@ public class SimulationLoop : ISimulationLoop
         var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
         var allocated = allocatedAfter - allocatedBefore;
 
-        // Console.WriteLine($"{_worldState.GetAgentCount()} agents | TickTime: {_stopwatch.ElapsedMilliseconds:F2}ms | Alloc: {allocated} bytes");
+        Console.WriteLine($"{_worldState.GetAgentCount()} agents | TickTime: {_stopwatch.ElapsedMilliseconds:F2}ms | Alloc: {allocated} bytes");
 
         return snapshotData;
     }
 
     private SnapshotData GenerateSnapshot()
     {
+        // Agents
         _agentSnapshots.Clear();
         foreach (var agent in _worldState.GetAllAgents())
         {
-            var agentSnapshot = new AgentSnapshot()
+            _agentSnapshots.Add(new AgentSnapshot
             {
                 Id = agent.Id,
                 Q = agent.CurrentPosition.Q,
                 R = agent.CurrentPosition.R,
-            };
-            _agentSnapshots.Add(agentSnapshot);
+            });
         }
 
-        var snapShotData = new SnapshotData()
+        // Tree
+        var tree = _worldState.Tree;
+        var treeSnapshot = new TreeSnapshot
+        {
+            Id = tree.Id,
+            Q = tree.Position.Q,
+            R = tree.Position.R,
+        };
+
+        // Resources
+        _resourceSnapshots.Clear();
+        foreach (var resource in _worldState.GetAllResources())
+        {
+            _resourceSnapshots.Add(new ResourceSnapshot
+            {
+                Id = resource.Id,
+                Q = resource.Position.Q,
+                R = resource.Position.R,
+            });
+        }
+
+        return new SnapshotData
         {
             Agents = _agentSnapshots,
+            Tree = treeSnapshot,
+            Resources = _resourceSnapshots,
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         };
-        return snapShotData;
     }
 }

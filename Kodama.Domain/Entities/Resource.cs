@@ -4,10 +4,10 @@ namespace Kodama.Domain.Entities;
 
 public class Resource
 {
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
     public Position Position { get; private set; }
     public long Amount { get; private set; }
-    public Guid? Owner { get; private set; }
+    public int? Owner { get; private set; }
 
     public bool IsDepleted => Amount <= 0;
     public bool IsAvailable => Owner == null && !IsDepleted;
@@ -17,7 +17,7 @@ public class Resource
         // Used by EF Core only
     }
 
-    public static Resource Create(Guid id, Position position, long amount)
+    public static Resource Create(int id, Position position, long amount)
     {
         return new Resource
         {
@@ -28,7 +28,7 @@ public class Resource
         };
     }
 
-    public bool Claim(Guid agentId)
+    public bool Claim(int agentId)
     {
         if (!IsAvailable)
         {

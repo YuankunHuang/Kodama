@@ -5,17 +5,27 @@ namespace Kodama.Application.States;
 
 public class WorldState
 {
-    public Tree Tree { get; private set; } = Tree.Create(Guid.NewGuid(), new Position(0, 0), 0);
+    private int _nextAgentId = 1;
+    private int _nextResourceId = 1;
+
+    public int AllocateAgentId() => _nextAgentId++;
+    public int AllocateResourceId() => _nextResourceId++;
+
+    public Tree Tree { get; private set; } = Tree.Create(1, new Position(0, 0), 0);
+
+    private readonly HashSet<Resource> _availableResources = new();
 
     // id
-    private readonly Dictionary<Guid, Agent> _agents = new();
-    private readonly Dictionary<Guid, Resource> _resources = new();
+    private readonly Dictionary<int, Agent> _agents = new();
+    private readonly Dictionary<int, Resource> _resources = new();
     
     // position
     private readonly Dictionary<Position, HashSet<Agent>> _agentsByPosition = new();
     private readonly Dictionary<Position, HashSet<Resource>> _resourcesByPosition = new();
 
     #region Getter
+    public HashSet<Resource> GetAvailableResources() => _availableResources;
+
     public int GetAgentCount()
     {
         return _agents.Count;
@@ -26,7 +36,7 @@ public class WorldState
         return _resources.Count;
     }
 
-    public Agent? GetAgent(Guid id)
+    public Agent? GetAgent(int id)
     {
         if (_agents.TryGetValue(id, out var agent))
         {
@@ -35,7 +45,7 @@ public class WorldState
         return null;
     }
 
-    public Resource? GetResource(Guid id)
+    public Resource? GetResource(int id)
     {
         if (_resources.TryGetValue(id, out var resource))
         {
@@ -44,8 +54,8 @@ public class WorldState
         return null;
     }
 
-    public Dictionary<Guid, Agent>.ValueCollection GetAllAgents() => _agents.Values;
-    public Dictionary<Guid, Resource>.ValueCollection GetAllResources() => _resources.Values;
+    public Dictionary<int, Agent>.ValueCollection GetAllAgents() => _agents.Values;
+    public Dictionary<int, Resource>.ValueCollection GetAllResources() => _resources.Values;
 
     public HashSet<Agent>? GetAgentsByPosition(Position position)
     {
@@ -67,7 +77,7 @@ public class WorldState
     #endregion
 
     #region Modifier
-    public void MoveAgent(Guid id, Position newPos)
+    public void MoveAgent(int id, Position newPos)
     {
         var agent = GetAgent(id);
         if (agent == null)
@@ -134,9 +144,14 @@ public class WorldState
             _resourcesByPosition[resource.Position] = set;
         }
         set.Add(resource);
+
+        if (resource.IsAvailable)
+        {
+            _availableResources.Add(resource);
+        }
     }
 
-    public void RemoveAgent(Guid id)
+    public void RemoveAgent(int id)
     {
         if (_agents.TryGetValue(id, out var agent))
         {
@@ -149,10 +164,12 @@ public class WorldState
         }
     }
 
-    public void RemoveResource(Guid id)
+    public void RemoveResource(int id)
     {
         if (_resources.TryGetValue(id, out var resource))
         {
+            _availableResources.Remove(resource);
+
             if (_resourcesByPosition.TryGetValue(resource.Position, out var set))
             {
                 set.Remove(resource);
@@ -163,19 +180,27 @@ public class WorldState
     }
     #endregion
 
+    public void MarkResourceUnavailable(Resource resource)
+    {
+        _availableResources.Remove(resource);
+    }
+
+    public void MarkResourceAvailable(Resource resource)
+    {
+        if (resource.IsAvailable)
+        {
+            _availableResources.Add(resource);
+        }
+    }
+
     public Resource? FindNearestAvailableResource(Position from)
     {
         // DOD > OOP :D
         // traverse all Resources from the god view, return the nearest one
         var minDistance = int.MaxValue;
         Resource? nearestRes = null;
-        foreach (var res in GetAllResources())
+        foreach (var res in _availableResources)
         {
-            if (!res.IsAvailable)
-            {
-                continue;
-            }
-
             var dist = from.DistanceTo(res.Position);
             if (dist < minDistance)
             {

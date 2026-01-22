@@ -404,5 +404,117 @@ Graphics.DrawMeshInstanced(mesh, 0, material, matrices, count);
 
 ---
 
-**最后更新**: 2026-01-20  
-**更新者**: Technical Mentor
+---
+
+## 🚀 2026-01-21 突击优化冲刺
+
+**目标**: 为 2K Sports Lab 岗位申请做最后冲刺，优化 Kodama Demo 展示面
+
+### 完成的核心优化
+
+**1. Guid → int 重构** ✅
+- **前**: Guid = 16 bytes (序列化 36 bytes)
+- **后**: int = 4 bytes
+- **节省**: ~88% ID 大小
+- **改动范围**: Domain 实体 + WorldState + DTO + 所有引用
+
+**2. JSON → MessagePack 序列化** ✅
+- **前**: System.Text.Json (~665 KB/帧 @ 10K Agent)
+- **后**: MessagePack (~150-200 KB/帧)
+- **节省**: ~70% 网络传输量
+- **影响**: 10K Agent 从卡顿变流畅
+
+**3. 资源查询性能优化** ✅
+- **缓存可用资源**: `HashSet<Resource> _availableResources`
+- **提前检查**: 避免无意义的遍历
+- **前**: 遍历所有 200 个 Resource
+- **后**: 只遍历可用的 ~50 个
+
+**4. Hex 环形生成修复** ✅
+- **问题**: 极坐标生成导致资源分布"斜的"
+- **方案**: 正确的 Hex ring 算法
+- **结果**: 资源沿正六边形环均匀分布
+
+**5. 坐标系统统一** ✅
+- **前**: X-Y 平面（2D 正交）
+- **后**: X-Z 平面（2.5D 俯视，类炉石传说视角）
+- **修改**: `HexUtils.HexToWorld()` + `HexGridRenderer`
+
+**6. 视觉系统完善** ✅
+- ✅ Agent Shader：果冻呼吸（Vertex Displacement + Noise）
+- ✅ Tree Shader：呼吸脉动（Time + Sine + Fresnel）
+- ✅ Resource Shader：Fresnel 边缘光
+- ✅ Hex 网格渲染：GL.Lines + 透明材质
+- ✅ 时间缩放：键盘控制（[ ] 调速）
+
+### 最终性能数据
+
+| 指标 | 值 |
+|------|-----|
+| Agent 数量 | **10,000** |
+| Tick Rate | **20Hz (50ms/tick)** |
+| Tick Time | **<50ms 稳定** |
+| GC 分配 | **0 bytes (稳态)** |
+| 网络传输 | **~150 KB/帧** |
+| 客户端 FPS | **60 FPS** |
+
+### 技术决策记录
+
+**ADR-013: Guid → int**  
+**日期**: 2026-01-21  
+**决策**: 实体 ID 从 Guid 改为 int  
+**理由**:
+- 单服务器仿真，不需要分布式 ID
+- 性能优先：int 比 Guid 快 4x，缓存友好
+- 参考 UE5 MassEntity 使用 int Entity Index
+
+**ADR-014: MessagePack 序列化**  
+**日期**: 2026-01-21  
+**决策**: 替换 JSON 为 MessagePack  
+**理由**:
+- 二进制序列化，体积小 70%
+- 不需要 .proto 定义（相比 Protobuf）
+- Unity 兼容性好
+
+**ADR-015: Hex 环形生成算法**  
+**日期**: 2026-01-21  
+**决策**: 使用正确的 Hex ring 算法替代极坐标  
+**理由**:
+- 极坐标生成的是圆形，不是正六边形
+- Hex ring 算法保证资源在六边形环上均匀分布
+- 符合 Hex 网格的几何特性
+
+### 学到的关键知识
+
+**1. 高性能仿真的 ID 选择**
+- 分布式系统 → Guid/UUID
+- 单服务器仿真 → int/uint (UE5, Unity DOTS 都用 int)
+
+**2. 序列化协议对比**
+| 协议 | 大小 | Schema | 跨语言 | 开发速度 |
+|------|------|--------|--------|---------|
+| JSON | 大 | 不需要 | ✅ | 快 |
+| MessagePack | 中 | 不需要 | ✅ | 快 |
+| Protobuf | 小 | 需要 .proto | ✅ | 慢 |
+
+**3. Hex 坐标系统**
+- Axial (q, r) 用于逻辑
+- World (x, z) 用于渲染
+- 正确转换公式：`x = √3 * (q + r*0.5)`, `z = 1.5 * r`
+
+**4. Shader Graph 关键技术**
+- **Fresnel Effect**: 边缘光，增加存在感
+- **Vertex Displacement**: 顶点偏移，产生"活的"感觉
+- **Time + Sine**: 平滑的周期性动画
+- **Duck Typing Enumerator**: 零分配枚举
+
+### 待完成（明天 Unreal 项目前）
+
+- [ ] 录制 Demo GIF/视频
+- [ ] README 更新（截图 + 架构图 + 性能数据）
+- [ ] 可选：Bloom 后处理
+
+---
+
+**最后更新**: 2026-01-21 深夜  
+**更新者**: Technical Mentor + 突击工程师

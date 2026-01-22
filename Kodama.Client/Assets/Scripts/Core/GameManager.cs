@@ -8,8 +8,20 @@ namespace YuankunHuang.Kodama.Core
 {
     public class GameManager : MonoBehaviour
     {
+        [Header("Agent")]
         [SerializeField] private Mesh _agentMesh;
         [SerializeField] private Material _agentMaterial;
+        [SerializeField] private Vector3 _agentScale;
+        
+        [Header("Tree")]
+        [SerializeField] private Mesh _treeMesh;
+        [SerializeField] private Material _treeMaterial;
+        [SerializeField] private Vector3 _treeScale;
+        
+        [Header("Resource")]
+        [SerializeField] private Mesh _resourceMesh;
+        [SerializeField] private Material _resourceMaterial;
+        [SerializeField] private Vector3 _resourceScale;
 
         private bool _isInitialized = false;
         
@@ -32,9 +44,22 @@ namespace YuankunHuang.Kodama.Core
         {
             yield return new WaitUntil(() => MonoBehaviourUtil.Instance != null);
             
-            // initialize
+            var renderConfig = new RenderConfig
+            {
+                AgentMesh = _agentMesh,
+                AgentMaterial = _agentMaterial,
+                AgentScale = _agentScale,
+                TreeMesh = _treeMesh,
+                TreeMaterial = _treeMaterial,
+                TreeScale = _treeScale,
+                ResourceMesh = _resourceMesh,
+                ResourceMaterial = _resourceMaterial,
+                ResourceScale = _resourceScale,
+            };
+            
+            // Initialize modules
             ModuleRegistry.Register(new NetworkManager());
-            ModuleRegistry.Register(new RenderManager(_agentMesh, _agentMaterial));
+            ModuleRegistry.Register(new RenderManager(renderConfig));
             
             ModuleRegistry.Get<NetworkManager>().Init();
             ModuleRegistry.Get<RenderManager>().Init();
@@ -54,7 +79,7 @@ namespace YuankunHuang.Kodama.Core
                 return;
             }
             
-            // dispose
+            // Dispose modules
             ModuleRegistry.Get<RenderManager>().Dispose();
             ModuleRegistry.Get<NetworkManager>().Dispose();
 

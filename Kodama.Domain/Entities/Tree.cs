@@ -4,7 +4,7 @@ namespace Kodama.Domain.Entities;
 
 public class Tree
 {
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
     public Position Position { get; private set; }
     public long Matter { get; private set; }
 
@@ -13,7 +13,7 @@ public class Tree
         // Used by EF Core only
     }
 
-    public static Tree Create(Guid id, Position position, long matter = 0)
+    public static Tree Create(int id, Position position, long matter = 0)
     {
         return new Tree
         {

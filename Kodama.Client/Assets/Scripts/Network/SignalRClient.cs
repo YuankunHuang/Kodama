@@ -1,9 +1,7 @@
-using System;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Kodama.Shared.DTOs;
-using UnityEngine;
+using MessagePack;
 using YuankunHuang.Kodama.Core;
 
 namespace YuankunHuang.Kodama.Network
@@ -27,7 +25,7 @@ namespace YuankunHuang.Kodama.Network
 
             _connection.On<byte[]>("ReceiveSnapshot", data =>
             {
-                var snapshotData = JsonSerializer.Deserialize<SnapshotData>(data);
+                var snapshotData = MessagePackSerializer.Deserialize<SnapshotData>(data);
                 MonoBehaviourUtil.Instance.RunOnMainThread(() =>
                 {
                     EventBus.Publish(EventKeys.SnapshotReceived, snapshotData);
@@ -40,6 +38,14 @@ namespace YuankunHuang.Kodama.Network
         public async Task DisconnectAsync()
         {
             await _connection.StopAsync();
+        }
+        
+        public async Task SetTimeScaleAsync(float scale)
+        {
+            if (_connection?.State == HubConnectionState.Connected)
+            {
+                await _connection.InvokeAsync("SetTimeScale", scale);
+            }
         }
     }    
 }
