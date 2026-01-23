@@ -32,17 +32,17 @@ namespace YuankunHuang.Kodama.Network
         {
             bool changed = false;
             
-            if (Input.GetKeyDown(KeyCode.LeftBracket)) // [
+            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) // -
             {
                 _currentScale = Mathf.Max(0.1f, _currentScale / 2f);
                 changed = true;
             }
-            else if (Input.GetKeyDown(KeyCode.RightBracket)) // ]
+            else if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) // + (Equals key is + without shift)
             {
                 _currentScale = Mathf.Min(10f, _currentScale * 2f);
                 changed = true;
             }
-            else if (Input.GetKeyDown(KeyCode.Backslash)) // \
+            else if (Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0)) // 0 to reset
             {
                 _currentScale = 1f;
                 changed = true;

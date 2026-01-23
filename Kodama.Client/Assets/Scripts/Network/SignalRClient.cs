@@ -47,5 +47,13 @@ namespace YuankunHuang.Kodama.Network
                 await _connection.InvokeAsync("SetTimeScale", scale);
             }
         }
+
+        public async Task RestartAsync()
+        {
+            if (_connection?.State == HubConnectionState.Connected)
+            {
+                await _connection.InvokeAsync("Restart");
+            }
+        }
     }    
 }

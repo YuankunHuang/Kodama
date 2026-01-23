@@ -1,81 +1,121 @@
 # Kodama (Project Sim-Forest)
 
-分布式实时模拟系统 / God Game
+**Distributed Real-Time Simulation System** — 10,000 Agent Resource Collection Simulation
 
-## 技术栈
+![Demo](docs/demo.gif)
 
-- **Backend**: ASP.NET Core 8.0
-- **Frontend**: Unity 6000.3.1f1 LTS with URP
-- **Communication**: SignalR (WebSocket) + JSON
-- **Architecture**: Server-Authoritative + Dumb Client
+## Highlights
 
-## 项目结构
+- **10,000 Agents** real-time simulation, server tick < 1ms
+- **Zero GC allocation** in hot path, stable 60 FPS client
+- **Server-authoritative architecture**, client is pure renderer
+- **Real-time HUD monitoring**, professional-grade data visualization
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Backend** | ASP.NET Core 8.0, Clean Architecture |
+| **Frontend** | Unity 6000.3.1f1 LTS, URP |
+| **Communication** | SignalR (WebSocket) + MessagePack |
+| **Rendering** | GPU Instancing, ShaderGraph |
+| **Architecture** | Server-Authoritative + Dumb Client |
+
+## Project Structure
 
 ```
 Kodama/
-├── Kodama.API/              # 入口点，DI 注册，SignalR Hub 映射
-├── Kodama.Application/      # 业务逻辑，接口定义
-├── Kodama.Infrastructure/   # 基础设施实现（SignalR, HostedService）
-├── Kodama.Domain/           # 领域模型，值对象，枚举
-├── Kodama.Shared/           # 共享 DTO (netstandard2.1, Unity 兼容)
-└── Kodama.Client/           # Unity 6 客户端 (URP)
+├── Kodama.API/              # Entry point, DI registration, SignalR Hub
+├── Kodama.Application/      # SimulationLoop, AgentBehaviourService, WorldState
+├── Kodama.Infrastructure/   # SignalR Broadcaster, HostedService
+├── Kodama.Domain/           # Agent, Resource, Tree entities
+├── Kodama.Shared/           # DTOs (MessagePack, netstandard2.1)
+└── Kodama.Client/           # Unity client (URP + GPU Instancing)
 ```
 
-## 快速开始
+## Quick Start
 
-### 1. 运行后端
+### 1. Start Backend
 
 ```bash
 cd Kodama
 dotnet run --project Kodama.API
 ```
 
-服务器将启动在 `http://localhost:5059`
+Server starts at `http://localhost:5059`
 
-SignalR Hub 端点: `ws://localhost:5059/gamehub`
+### 2. Start Unity Client
 
-### 2. 运行 Unity 客户端
+1. Open `Kodama.Client/` with Unity 6000.3.1f1
+2. Open scene `Assets/Scenes/Main.unity`
+3. Click Play
 
-1. 用 Unity 6000.3.1f1 打开 `Kodama.Client/`
-2. 打开场景 `Assets/Scenes/Main.unity`
-3. 点击 Play
+### 3. Controls
 
-### 3. 更新共享 DLL（修改 DTO 后）
+| Key | Function |
+|-----|----------|
+| H | Toggle HUD |
+| R | Restart Simulation |
+| Space | Pause/Resume |
+| -/+ | Slow Down/Speed Up |
+| 0 | Reset Speed |
 
-```bash
-dotnet build Kodama.Shared
-# 然后复制 DLL 到 Unity:
-# Kodama.Shared/bin/Debug/netstandard2.1/Kodama.Shared.dll
-# → Kodama.Client/Assets/Plugins/Kodama.Shared.dll
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         SERVER                              │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
+│  │ WorldState  │→ │ SimulationLoop│→ │ SignalRBroadcaster│  │
+│  │ (10k Agents)│  │   (20 Hz)    │  │   (MessagePack)   │  │
+│  └─────────────┘  └──────────────┘  └─────────┬─────────┘  │
+└───────────────────────────────────────────────│─────────────┘
+                                                ↓ WebSocket
+┌───────────────────────────────────────────────│─────────────┐
+│                         CLIENT                │             │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────┴────────┐   │
+│  │RenderManager│← │ Interpolation│← │  NetworkManager │   │
+│  │(GPU Instancing)│ │  (60 FPS)   │  │   (SignalR)    │   │
+│  └─────────────┘  └──────────────┘  └─────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 当前状态
+## Performance Metrics
 
-### Phase 1 ✅ 已完成
-- [x] SignalR Hub 搭建
-- [x] 模拟循环 (10Hz Tick)
-- [x] Agent 圆周运动
-- [x] Snapshot 广播
-- [x] Unity 客户端连接
-- [x] 插值渲染
+| Metric | Value |
+|--------|-------|
+| Agent Count | 10,000 |
+| Server Tick Time | < 1 ms |
+| Server GC Allocation | 0 bytes/tick |
+| Client FPS | 60 (GPU Instancing) |
+| Network Protocol | MessagePack (Binary) |
 
-### Phase 2 🔄 进行中（后端完成）
-- [x] Domain 实体（Agent, Resource, Tree）
-- [x] WorldState 容器（双字典索引 + BFS）
-- [x] Agent FSM（7 状态完整循环）
-- [x] SimulationLoop 重构（延迟删除 + 轴坐标）
-- [x] 后端测试验证（3 Agent 正确采集）
-- [ ] Unity 客户端更新（Hex 坐标转换 + 多 Agent 渲染）
+## Agent State Machine
 
-## 开发路线图
+```
+     ┌─────────────────────────────────────────┐
+     ↓                                         │
+  [Idle] → [FindingResource] → [MovingToResource]
+                                      │
+                                      ↓
+  [Depositing] ← [ReturningToBase] ← [Collecting]
+       │
+       └──→ [Idle] (loop)
+```
 
-| Phase | 目标 | 状态 |
-|-------|------|------|
-| Phase 1 | 后端 MVP + 联调 | ✅ 已完成 |
-| Phase 2 | 资源采集循环 | 🔄 进行中（后端完成） |
-| Phase 3 | 500+ Agent 规模化 | ⏳ 待开始 |
-| Phase 4 | 视觉打磨 + 部署 | ⏳ 待开始 |
+## Development Log
 
-## 协议
+See [DEVLOG.md](DEVLOG.md)
 
-私有项目
+## Architecture Decision Records (ADR)
+
+| Decision | Reason |
+|----------|--------|
+| Guid → int ID | Reduce snapshot size, improve serialization performance |
+| JSON → MessagePack | Binary serialization, smaller and faster |
+| Duck Typing Enumerator | Avoid GC allocation from Dictionary.Values |
+| GPU Instancing | Single draw call for 10K+ entities |
+
+## License
+
+Private Project

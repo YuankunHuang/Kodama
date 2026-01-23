@@ -16,5 +16,7 @@ namespace Kodama.Shared.DTOs
         public List<ResourceSnapshot> Resources { get; set; }
         [Key(3)]
         public long CreatedAt { get; set; }
+        [Key(4)]
+        public SimulationStats Stats { get; set; }
     }
 }

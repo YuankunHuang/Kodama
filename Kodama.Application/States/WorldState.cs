@@ -193,6 +193,18 @@ public class WorldState
         }
     }
 
+    public void Clear()
+    {
+        _agents.Clear();
+        _resources.Clear();
+        _agentsByPosition.Clear();
+        _resourcesByPosition.Clear();
+        _availableResources.Clear();
+        _nextAgentId = 1;
+        _nextResourceId = 1;
+        Tree = Tree.Create(1, new Position(0, 0), 0);
+    }
+
     public Resource? FindNearestAvailableResource(Position from)
     {
         // DOD > OOP :D

@@ -11,6 +11,7 @@ namespace YuankunHuang.Kodama.Core
         [Header("Agent")]
         [SerializeField] private Mesh _agentMesh;
         [SerializeField] private Material _agentMaterial;
+        [SerializeField] private Material _agentReturningMaterial; // Highlighted when returning to base
         [SerializeField] private Vector3 _agentScale;
         
         [Header("Tree")]
@@ -21,6 +22,7 @@ namespace YuankunHuang.Kodama.Core
         [Header("Resource")]
         [SerializeField] private Mesh _resourceMesh;
         [SerializeField] private Material _resourceMaterial;
+        [SerializeField] private Material _resourceCollectingMaterial; // Highlighted when being collected
         [SerializeField] private Vector3 _resourceScale;
 
         private bool _isInitialized = false;
@@ -48,12 +50,14 @@ namespace YuankunHuang.Kodama.Core
             {
                 AgentMesh = _agentMesh,
                 AgentMaterial = _agentMaterial,
+                AgentReturningMaterial = _agentReturningMaterial,
                 AgentScale = _agentScale,
                 TreeMesh = _treeMesh,
                 TreeMaterial = _treeMaterial,
                 TreeScale = _treeScale,
                 ResourceMesh = _resourceMesh,
                 ResourceMaterial = _resourceMaterial,
+                ResourceCollectingMaterial = _resourceCollectingMaterial,
                 ResourceScale = _resourceScale,
             };
             

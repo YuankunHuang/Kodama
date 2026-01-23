@@ -13,12 +13,15 @@ namespace Kodama.Shared.DTOs
         public int Q { get; set; }
         [Key(2)]
         public int R { get; set; }
+        [Key(3)]
+        public byte State { get; set; }
 
-        public AgentSnapshot(int id, int q, int r)
+        public AgentSnapshot(int id, int q, int r, byte state)
         {
             Id = id;
             Q = q;
             R = r;
+            State = state;
         }
     }
 }

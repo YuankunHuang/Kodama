@@ -10,7 +10,7 @@ public class SimulationHostedServices : BackgroundService
     
     // Time scale: 1.0 = normal, 2.0 = 2x speed, 0.5 = half speed
     private static float _timeScale = 1.0f;
-    private const float BaseTickInterval = 50f; // ms -> 20Hz
+    private const float BaseTickInterval = 100f; // ms
     
     public static float TimeScale
     {
@@ -38,6 +38,7 @@ public class SimulationHostedServices : BackgroundService
             var interval = TimeSpan.FromMilliseconds(intervalMs);
             nextTickTime += interval;
             
+            _simulationLoop.SetTimeScale(_timeScale);
             var snapshot = _simulationLoop.Tick(deltaTime);
             await _broadcaster.BroadcastToAllClients(snapshot);
             
