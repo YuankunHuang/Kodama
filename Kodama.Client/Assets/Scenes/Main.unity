@@ -516,6 +516,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::YuankunHuang.Kodama.UI.SimulationHUD
   _showHUD: 1
   _toggleKey: 104
+  _restartKey: 114
+  _pauseKey: 32
 --- !u!4 &1092365937
 Transform:
   m_ObjectHideFlags: 0
