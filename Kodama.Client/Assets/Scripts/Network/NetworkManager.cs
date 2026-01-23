@@ -36,5 +36,10 @@ namespace YuankunHuang.Kodama.Network
         {
             _ = _signalRClient?.SetTimeScaleAsync(scale);
         }
+
+        public void Restart()
+        {
+            _ = _signalRClient?.RestartAsync();
+        }
     }    
 }

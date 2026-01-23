@@ -150,13 +150,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   _agentMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   _agentMaterial: {fileID: 2100000, guid: 1e2293efa9a79074ebdcdd81790a64a9, type: 2}
-  _agentScale: {x: 0.25, y: 0.25, z: 0.25}
-  _treeMesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  _agentReturningMaterial: {fileID: 2100000, guid: 5a288a1e46986044092bf12dc0aebf64, type: 2}
+  _agentScale: {x: 0.6, y: 0.6, z: 0.6}
+  _treeMesh: {fileID: -5368254552267095169, guid: 6f9278a61eb59644fb20b53f067d65f7, type: 3}
   _treeMaterial: {fileID: 2100000, guid: 15e854db060b50d4181d457c15f40ea8, type: 2}
-  _treeScale: {x: 3, y: 5, z: 3}
-  _resourceMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  _treeScale: {x: 300, y: 300, z: 300}
+  _resourceMesh: {fileID: 3239847977646805332, guid: 90565348d561cd24fa07beb9bdf00d6a, type: 3}
   _resourceMaterial: {fileID: 2100000, guid: 24ed761c69be0ae468aea6845a6642b6, type: 2}
-  _resourceScale: {x: 0.5, y: 0.5, z: 0.5}
+  _resourceCollectingMaterial: {fileID: 2100000, guid: a3c8ea8ff5e9d8b4d8620d14e2ea7f2d, type: 2}
+  _resourceScale: {x: 2, y: 2, z: 2}
 --- !u!4 &69848232
 Transform:
   m_ObjectHideFlags: 0
@@ -288,7 +290,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -483,6 +485,52 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &1092365935
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1092365937}
+  - component: {fileID: 1092365936}
+  m_Layer: 0
+  m_Name: SimulationHUD
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1092365936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092365935}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf4aeda7738971749b8d74be163fdc62, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YuankunHuang.Kodama.UI.SimulationHUD
+  _showHUD: 1
+  _toggleKey: 104
+--- !u!4 &1092365937
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092365935}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1727364349
 GameObject:
   m_ObjectHideFlags: 0
@@ -536,3 +584,4 @@ SceneRoots:
   - {fileID: 69848232}
   - {fileID: 1727364351}
   - {fileID: 350247926}
+  - {fileID: 1092365937}

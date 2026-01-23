@@ -100,6 +100,24 @@ public class SimulationLoop : ISimulationLoop
         return new Position(q, r);
     }
 
+    // Store last tick metrics for stats
+    private float _lastTickTimeMs;
+    private long _lastAllocBytes;
+    private float _timeScale = 1.0f;
+    
+    public void SetTimeScale(float scale) => _timeScale = scale;
+
+    public void Restart()
+    {
+        // Clear existing state
+        _worldState.Clear();
+        
+        // Re-initialize the world
+        InitializeWorld();
+        
+        Console.WriteLine("[SimulationLoop] Simulation restarted!");
+    }
+
     public SnapshotData Tick(float deltaTime)
     {
         var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
@@ -125,17 +143,24 @@ public class SimulationLoop : ISimulationLoop
             }
         }
 
-        var snapshotData = GenerateSnapshot();
+        _stopwatch.Stop();
         var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
-        var allocated = allocatedAfter - allocatedBefore;
+        
+        _lastTickTimeMs = (float)_stopwatch.Elapsed.TotalMilliseconds;
+        _lastAllocBytes = allocatedAfter - allocatedBefore;
 
-        Console.WriteLine($"{_worldState.GetAgentCount()} agents | TickTime: {_stopwatch.ElapsedMilliseconds:F2}ms | Alloc: {allocated} bytes");
+        var snapshotData = GenerateSnapshot();
+
+        // Console.WriteLine($"{_worldState.GetAgentCount()} agents | TickTime: {_lastTickTimeMs:F2}ms | Alloc: {_lastAllocBytes} bytes");
 
         return snapshotData;
     }
 
     private SnapshotData GenerateSnapshot()
     {
+        // Agent state counters
+        int idle = 0, finding = 0, moving = 0, collecting = 0, returning = 0, depositing = 0;
+        
         // Agents
         _agentSnapshots.Clear();
         foreach (var agent in _worldState.GetAllAgents())
@@ -145,7 +170,19 @@ public class SimulationLoop : ISimulationLoop
                 Id = agent.Id,
                 Q = agent.CurrentPosition.Q,
                 R = agent.CurrentPosition.R,
+                State = (byte)agent.State,
             });
+            
+            // Count states
+            switch (agent.State)
+            {
+                case Domain.Enums.AgentState.Idle: idle++; break;
+                case Domain.Enums.AgentState.FindingResource: finding++; break;
+                case Domain.Enums.AgentState.MovingToResource: moving++; break;
+                case Domain.Enums.AgentState.Collecting: collecting++; break;
+                case Domain.Enums.AgentState.ReturningToBase: returning++; break;
+                case Domain.Enums.AgentState.Depositing: depositing++; break;
+            }
         }
 
         // Tree
@@ -158,16 +195,40 @@ public class SimulationLoop : ISimulationLoop
         };
 
         // Resources
+        int resourcesOccupied = 0;
         _resourceSnapshots.Clear();
         foreach (var resource in _worldState.GetAllResources())
         {
+            bool isOccupied = resource.Owner != null;
+            if (isOccupied) resourcesOccupied++;
+            
             _resourceSnapshots.Add(new ResourceSnapshot
             {
                 Id = resource.Id,
                 Q = resource.Position.Q,
                 R = resource.Position.R,
+                IsBeingCollected = isOccupied,
             });
         }
+
+        // Stats
+        var stats = new SimulationStats
+        {
+            AgentCount = _agentSnapshots.Count,
+            ResourceCount = _resourceSnapshots.Count,
+            TickTimeMs = _lastTickTimeMs,
+            MemoryAllocBytes = _lastAllocBytes,
+            TimeScale = _timeScale,
+            AgentsIdle = idle,
+            AgentsFinding = finding,
+            AgentsMoving = moving,
+            AgentsCollecting = collecting,
+            AgentsReturning = returning,
+            AgentsDepositing = depositing,
+            TreeEnergy = tree.Matter,
+            ResourcesOccupied = resourcesOccupied,
+            ResourcesAvailable = _resourceSnapshots.Count - resourcesOccupied,
+        };
 
         return new SnapshotData
         {
@@ -175,6 +236,7 @@ public class SimulationLoop : ISimulationLoop
             Tree = treeSnapshot,
             Resources = _resourceSnapshots,
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            Stats = stats,
         };
     }
 }

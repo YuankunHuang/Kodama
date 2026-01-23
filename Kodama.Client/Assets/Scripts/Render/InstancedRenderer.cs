@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace YuankunHuang.Kodama.Render
@@ -23,14 +24,34 @@ namespace YuankunHuang.Kodama.Render
                 _matrices[batchedCount] = Matrix4x4.TRS(positions[i], Quaternion.identity, scale);
                 ++batchedCount;
 
-                if (batchedCount == _matrices.Length) // render batch + increment counter
+                if (batchedCount == _matrices.Length)
                 {
                     Graphics.DrawMeshInstanced(_mesh, 0, _material, _matrices, batchedCount);
                     batchedCount = 0;
                 }
             }
 
-            // render the remaining as a batch
+            if (batchedCount > 0)
+            {
+                Graphics.DrawMeshInstanced(_mesh, 0, _material, _matrices, batchedCount);
+            }
+        }
+
+        public void RenderList(List<Vector3> positions, Vector3 scale)
+        {
+            var batchedCount = 0;
+            for (var i = 0; i < positions.Count; ++i)
+            {
+                _matrices[batchedCount] = Matrix4x4.TRS(positions[i], Quaternion.identity, scale);
+                ++batchedCount;
+
+                if (batchedCount == _matrices.Length)
+                {
+                    Graphics.DrawMeshInstanced(_mesh, 0, _material, _matrices, batchedCount);
+                    batchedCount = 0;
+                }
+            }
+
             if (batchedCount > 0)
             {
                 Graphics.DrawMeshInstanced(_mesh, 0, _material, _matrices, batchedCount);

@@ -13,12 +13,15 @@ namespace Kodama.Shared.DTOs
         public int Q { get; set; }
         [Key(2)]
         public int R { get; set; }
+        [Key(3)]
+        public bool IsBeingCollected { get; set; }
 
-        public ResourceSnapshot(int id, int q, int r)
+        public ResourceSnapshot(int id, int q, int r, bool isBeingCollected)
         {
             Id = id;
             Q = q;
             R = r;
+            IsBeingCollected = isBeingCollected;
         }
     }
 }
