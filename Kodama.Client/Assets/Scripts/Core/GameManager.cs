@@ -44,6 +44,10 @@ namespace YuankunHuang.Kodama.Core
 
         private IEnumerator InitializeRoutine()
         {
+            // Unlock frame rate
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 120;
+            
             yield return new WaitUntil(() => MonoBehaviourUtil.Instance != null);
             
             var renderConfig = new RenderConfig

@@ -89,7 +89,6 @@ public class WorldState
             oldSet.Remove(agent);
         }
         agent.MoveTo(newPos);
-        _agents[id] = agent;
         if (!_agentsByPosition.TryGetValue(newPos, out var set))
         {
             set = new();
