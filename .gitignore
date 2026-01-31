@@ -407,3 +407,7 @@ dump.rdb
 
 # PostgreSQL
 *.sql
+
+# Cursor AI IDE
+.cursorrules
+.cursor/
