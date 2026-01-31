@@ -33,9 +33,27 @@ Kodama/
 └── Kodama.Client/           # Unity client (URP + GPU Instancing)
 ```
 
+## Requirements
+
+| Component | Requirement |
+|-----------|-------------|
+| OS | Windows 10/11 |
+| .NET | [.NET 8.0 Runtime or SDK](https://dotnet.microsoft.com/download/dotnet/8.0) |
+| GPU | DirectX 11 compatible |
+
 ## Quick Start
 
-### 1. Start Backend
+### One-Click Launch (Recommended)
+
+**Double-click `RunDemo.bat`**
+
+The script will automatically:
+1. Start the backend server (new window)
+2. Launch the Unity client
+
+### Manual Start
+
+#### 1. Start Backend
 
 ```bash
 cd Kodama
@@ -44,13 +62,13 @@ dotnet run --project Kodama.API
 
 Server starts at `http://localhost:5059`
 
-### 2. Start Unity Client
+#### 2. Start Unity Client
 
-1. Open `Kodama.Client/` with Unity 6000.3.1f1
-2. Open scene `Assets/Scenes/Main.unity`
-3. Click Play
+Run `Kodama.Client/Build/Kodama.exe`
 
-### 3. Controls
+Or open `Kodama.Client/` in Unity Editor and play `Assets/Scenes/Main.unity`
+
+### Controls
 
 | Key | Function |
 |-----|----------|
@@ -115,6 +133,20 @@ See [DEVLOG.md](DEVLOG.md)
 | JSON → MessagePack | Binary serialization, smaller and faster |
 | Duck Typing Enumerator | Avoid GC allocation from Dictionary.Values |
 | GPU Instancing | Single draw call for 10K+ entities |
+
+## Troubleshooting
+
+**Q: Client can't connect to server?**
+
+Ensure the backend window shows "Now listening on: http://localhost:5059"
+
+**Q: Can't see agents?**
+
+Check Unity console for "Connected to server" message.
+
+**Q: Backend error?**
+
+Ensure port 5059 is not occupied by another process.
 
 ## License
 
