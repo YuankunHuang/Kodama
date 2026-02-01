@@ -24,6 +24,8 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+Publish/
+
 # Visual Studio cache/options
 .vs/
 .vscode/

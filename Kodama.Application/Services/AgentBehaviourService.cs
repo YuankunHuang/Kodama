@@ -1,3 +1,4 @@
+using Kodama.Application.Interfaces;
 using Kodama.Application.States;
 using Kodama.Domain.Entities;
 using Kodama.Domain.Enums;
@@ -7,6 +8,13 @@ namespace Kodama.Application.Services;
 
 public class AgentBehaviourService
 {
+    private readonly ISimulationAnalytics _analytics;
+
+    public AgentBehaviourService(ISimulationAnalytics analytics)
+    {
+        _analytics = analytics;
+    }
+    
     public void Process(Agent agent, WorldState worldState, float deltaTime)
     {
         if (agent == null)
@@ -64,6 +72,8 @@ public class AgentBehaviourService
         worldState.Tree.Deposit(agent.Inventory);
         agent.ClearInventory();
         agent.ChangeState(AgentState.Idle);
+        
+        _analytics.RecordTaskCompleted();
     }
 
     private void ProcessReturningToBase(Agent agent, WorldState worldState)

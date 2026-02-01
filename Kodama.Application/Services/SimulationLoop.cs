@@ -15,16 +15,19 @@ public class SimulationLoop : ISimulationLoop
     private readonly List<ResourceSnapshot> _resourceSnapshots;
     private readonly List<int> _agentsToRemove;
     private readonly Stopwatch _stopwatch;
+    private readonly ISimulationAnalytics _analytics;
 
     // Configurable: Agent count determines map scale
     private const int InitialAgentCount = 10000;
     private const int ResourcesPerRing = 12; // Resources per radius ring
     private const int MapRadius = 50; // Max hex distance from center
 
-    public SimulationLoop(WorldState worldState, AgentBehaviourService agentBehaviourService)
+    public SimulationLoop(WorldState worldState, AgentBehaviourService agentBehaviourService, ISimulationAnalytics analytics)
     {
         _worldState = worldState;
         _agentBehaviourService = agentBehaviourService;
+        _analytics = analytics;
+        
         _agentSnapshots = new(InitialAgentCount);
         _resourceSnapshots = new(ResourcesPerRing * MapRadius);
         _agentsToRemove = new(128);
@@ -120,6 +123,8 @@ public class SimulationLoop : ISimulationLoop
 
     public SnapshotData Tick(float deltaTime)
     {
+        _analytics.Tick(deltaTime);
+        
         var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
 
         _stopwatch.Restart();

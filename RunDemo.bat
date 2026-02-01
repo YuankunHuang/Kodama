@@ -5,34 +5,50 @@ echo        KODAMA DEMO LAUNCHER
 echo ========================================
 echo.
 
-:: Check if .NET is installed
-dotnet --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERROR] .NET SDK/Runtime not found!
-    echo Please install .NET 8.0 from: https://dotnet.microsoft.com/download
-    echo.
-    pause
-    exit /b 1
-)
-
 echo [1/2] Starting Backend Server...
 echo      (Keep this window open!)
 echo.
 
-:: Start backend in a new window
-start "Kodama Backend" cmd /k "cd /d %~dp0 && dotnet run --project Kodama.API --configuration Release"
+:: Start backend - check multiple locations
+if exist "%~dp0Backend\Kodama.API.exe" (
+    :: Packaged release structure
+    start "Kodama Backend" cmd /k "cd /d %~dp0Backend && Kodama.API.exe"
+) else if exist "%~dp0Publish\Kodama.API.exe" (
+    :: Development publish structure
+    start "Kodama Backend" cmd /k "cd /d %~dp0Publish && Kodama.API.exe"
+) else (
+    :: Fallback to dotnet run
+    dotnet --version >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [ERROR] Backend not found and .NET SDK not installed!
+        echo Please run Build.bat first or install .NET 8.0
+        pause
+        exit /b 1
+    )
+    start "Kodama Backend" cmd /k "cd /d %~dp0 && dotnet run --project Kodama.API --configuration Release"
+)
 
-:: Wait for server to start
+:: Wait for server to start (check port 5000)
 echo Waiting for server to initialize...
-timeout /t 3 /nobreak >nul
+:wait_loop
+powershell -Command "try { $null = [System.Net.Sockets.TcpClient]::new('localhost', 5000); exit 0 } catch { exit 1 }" >nul 2>&1
+if %errorlevel% neq 0 (
+    timeout /t 1 /nobreak >nul
+    goto wait_loop
+)
+echo Server is ready!
 
 echo.
 echo [2/2] Starting Unity Client...
 echo.
 
-:: Check if built client exists
-if exist "%~dp0Kodama.Client\Build\Kodama.exe" (
-    start "" "%~dp0Kodama.Client\Build\Kodama.exe"
+:: Check if built client exists - check multiple locations
+if exist "%~dp0Client\Kodama.Client.exe" (
+    :: Packaged release structure
+    start "" "%~dp0Client\Kodama.Client.exe"
+) else if exist "%~dp0Kodama.Client\Build\Kodama.Client.exe" (
+    :: Development structure
+    start "" "%~dp0Kodama.Client\Build\Kodama.Client.exe"
 ) else (
     echo [WARNING] Unity client build not found!
     echo.
@@ -48,9 +64,9 @@ if exist "%~dp0Kodama.Client\Build\Kodama.exe" (
 
 echo.
 echo ========================================
-echo Demo is running!
+echo Kodama is running!
 echo.
-echo - Backend: http://localhost:5059
+echo - Backend: http://localhost:5000
 echo - Press Ctrl+C in Backend window to stop
 echo ========================================
 echo.

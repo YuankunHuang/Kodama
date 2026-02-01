@@ -8,7 +8,7 @@ namespace YuankunHuang.Kodama.Network
         private SignalRClient _signalRClient;
         private TimeScaleController _timeScaleController;
         
-        private const string ServerUrl = "http://localhost:5059/gamehub";
+        private const string ServerUrl = "http://localhost:5000/gamehub";
         
         public void Init()
         {
@@ -35,6 +35,11 @@ namespace YuankunHuang.Kodama.Network
         public void SetTimeScale(float scale)
         {
             _ = _signalRClient?.SetTimeScaleAsync(scale);
+        }
+        
+        public void SetPaused(bool paused)
+        {
+            _ = _signalRClient?.SetPausedAsync(paused);
         }
 
         public void Restart()

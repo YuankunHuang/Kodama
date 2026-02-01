@@ -19,20 +19,31 @@ namespace YuankunHuang.Kodama.Network
 
         public async Task ConnectAsync()
         {
-            _connection = new HubConnectionBuilder()
-                .WithUrl(_url)
-                .Build();
-
-            _connection.On<byte[]>("ReceiveSnapshot", data =>
+            try
             {
-                var snapshotData = MessagePackSerializer.Deserialize<SnapshotData>(data);
-                MonoBehaviourUtil.Instance.RunOnMainThread(() =>
+                UnityEngine.Debug.Log($"[SignalR] Connecting to {_url}...");
+                
+                _connection = new HubConnectionBuilder()
+                    .WithUrl(_url)
+                    .Build();
+
+                _connection.On<byte[]>("ReceiveSnapshot", data =>
                 {
-                    EventBus.Publish(EventKeys.SnapshotReceived, snapshotData);
+                    // UnityEngine.Debug.Log($"[SignalR] Received snapshot: {data.Length} bytes");
+                    var snapshotData = MessagePackSerializer.Deserialize<SnapshotData>(data);
+                    MonoBehaviourUtil.Instance.RunOnMainThread(() =>
+                    {
+                        EventBus.Publish(EventKeys.SnapshotReceived, snapshotData);
+                    });
                 });
-            });
-            
-            await _connection.StartAsync();
+                
+                await _connection.StartAsync();
+                UnityEngine.Debug.Log("[SignalR] Connected successfully!");
+            }
+            catch (System.Exception e)
+            {
+                UnityEngine.Debug.LogError($"[SignalR] Connection failed: {e}");
+            }
         }
 
         public async Task DisconnectAsync()
@@ -45,6 +56,14 @@ namespace YuankunHuang.Kodama.Network
             if (_connection?.State == HubConnectionState.Connected)
             {
                 await _connection.InvokeAsync("SetTimeScale", scale);
+            }
+        }
+        
+        public async Task SetPausedAsync(bool paused)
+        {
+            if (_connection?.State == HubConnectionState.Connected)
+            {
+                await _connection.InvokeAsync("SetPaused", paused);
             }
         }
 
