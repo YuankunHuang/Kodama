@@ -19,6 +19,8 @@ builder.Services.AddSingleton<ISimulationLoop, SimulationLoop>();
 builder.Services.AddSingleton<IGameBroadcaster, SignalRBroadcaster>();
 builder.Services.AddSingleton<AgentBehaviourService>();
 builder.Services.AddSingleton<WorldState>();
+builder.Services.AddSingleton<ISimulationAnalytics, SimulationAnalytics>();
+builder.Services.AddSingleton<IAnalyticsReporter, AnalyticsReporter>();
 
 var app = builder.Build();
 

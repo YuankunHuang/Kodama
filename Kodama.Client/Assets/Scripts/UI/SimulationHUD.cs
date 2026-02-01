@@ -62,7 +62,7 @@ namespace YuankunHuang.Kodama.UI
             {
                 _isPaused = !_isPaused;
                 var networkManager = ModuleRegistry.Get<NetworkManager>();
-                networkManager?.SetTimeScale(_isPaused ? 0.1f : 1.0f);
+                networkManager?.SetPaused(_isPaused);
             }
             
             // Calculate client FPS
@@ -130,7 +130,7 @@ namespace YuankunHuang.Kodama.UI
             GUILayout.Label($"Server Tick:  {_stats.TickTimeMs:F2} ms", _labelStyle);
             GUILayout.Label($"Memory Alloc: {_stats.MemoryAllocBytes} bytes", _labelStyle);
             GUILayout.Label($"Client FPS:   {_clientFps:F0}", _labelStyle);
-            GUILayout.Label($"Time Scale:   {_stats.TimeScale:F1}x", _labelStyle);
+            GUILayout.Label($"Time Scale:   {(_isPaused ? 0 : _stats.TimeScale):F1}x", _labelStyle);
             GUILayout.Space(6);
             
             // Entities
@@ -152,7 +152,7 @@ namespace YuankunHuang.Kodama.UI
             GUILayout.Label("─── AGENT STATES ───", _headerStyle);
             int total = _stats.AgentCount > 0 ? _stats.AgentCount : 1;
             
-            DrawStateBar("Idle", _stats.AgentsIdle, total, Color.gray);
+            DrawStateBar("Idle", _stats.AgentsIdle, total, new Color(0.7f, 0.7f, 0.8f));
             DrawStateBar("Finding", _stats.AgentsFinding, total, Color.yellow);
             DrawStateBar("Moving", _stats.AgentsMoving, total, Color.cyan);
             DrawStateBar("Collecting", _stats.AgentsCollecting, total, new Color(1f, 0.5f, 0f));
@@ -163,12 +163,15 @@ namespace YuankunHuang.Kodama.UI
             
             // Controls section
             GUILayout.Label("─── CONTROLS ───", _headerStyle);
-            var controlStyle = new GUIStyle(_labelStyle) { fontSize = 11, normal = { textColor = Color.gray } };
+            var controlStyle = new GUIStyle(_labelStyle) { fontSize = 13, normal = { textColor = new Color(0.9f, 0.9f, 0.7f) } };
             GUILayout.Label("H - Toggle HUD", controlStyle);
             GUILayout.Label("R - Restart Simulation", controlStyle);
             GUILayout.Label("Space - Pause/Resume", controlStyle);
             GUILayout.Label("-/+ - Slow/Fast", controlStyle);
             GUILayout.Label("0 - Reset Speed", controlStyle);
+            GUILayout.Space(6);
+            var exitStyle = new GUIStyle(_labelStyle) { fontSize = 14, fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.4f, 0.4f) } };
+            GUILayout.Label("ESC - Quit", exitStyle);
             
             GUILayout.EndArea();
         }

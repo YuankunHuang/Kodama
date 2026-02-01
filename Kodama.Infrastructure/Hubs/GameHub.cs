@@ -23,6 +23,17 @@ public class GameHub : Hub<IGameClient>
     {
         return SimulationHostedServices.TimeScale;
     }
+    
+    public void SetPaused(bool paused)
+    {
+        SimulationHostedServices.IsPaused = paused;
+        Console.WriteLine($"[GameHub] Simulation {(paused ? "paused" : "resumed")}");
+    }
+    
+    public bool GetPaused()
+    {
+        return SimulationHostedServices.IsPaused;
+    }
 
     public void Restart()
     {

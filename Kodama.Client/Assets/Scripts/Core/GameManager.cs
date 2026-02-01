@@ -75,6 +75,18 @@ namespace YuankunHuang.Kodama.Core
             _isInitialized = true;
         }
 
+        private void Update()
+        {
+            // ESC to quit
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                Application.Quit();
+#if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+#endif
+            }
+        }
+
         private void OnDisable()
         {
             Dispose();
