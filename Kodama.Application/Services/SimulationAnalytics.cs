@@ -37,7 +37,16 @@ public class SimulationAnalytics : ISimulationAnalytics
     
     public void Tick(float deltaTime)
     {
-        Interlocked.Exchange(ref _elapsedTime, _elapsedTime + deltaTime);
+        var isElapsedTimeRead = false;
+        var elapsedTime = Volatile.Read(ref _elapsedTime);
+        Volatile.Write(ref isElapsedTimeRead, true);
+        if (isElapsedTimeRead)
+        {
+            
+        }
+        
+        var elap = Volatile.Read(ref _elapsedTime);
+        Volatile.Write(ref _elapsedTime, elap + deltaTime);
     }
 
     public void RecordTaskCompleted()

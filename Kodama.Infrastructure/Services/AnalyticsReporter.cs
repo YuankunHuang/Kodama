@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using Kodama.Application.Interfaces;
 using Kodama.Shared.DTOs;
@@ -23,7 +23,19 @@ public class AnalyticsReporter : IAnalyticsReporter
 
     public string ExportCsv(AnalyticsReport report)
     {
-        throw new NotImplementedException();
+        var sb = new StringBuilder();
+        
+        sb.AppendLine("StationId,Utilization,CurrentQueue,PeakQueue,AveWaitTimeSeconds,IsBottleneck,IsUnderutilized");
+        
+        if (report.Stations != null)
+        {
+            foreach (var station in report.Stations)
+            {
+                sb.AppendLine($"{station.StationId},{station.Utilization:F4},{station.CurrentQueue},{station.PeakQueue},{station.AveWaitTimeSeconds:F2},{station.IsBottleneck},{station.IsUnderutilized}");
+            }
+        }
+        
+        return sb.ToString();
     }
 
     public string ExportMarkdown(AnalyticsReport report)
@@ -51,7 +63,7 @@ public class AnalyticsReporter : IAnalyticsReporter
             sb.AppendLine("|---------|-------------|---------------|------------|--------|");
             foreach (var station in report.Stations)
             {
-                var status = station.IsBottleneck ? "⚠️ WARN" : "✓ OK";
+                var status = station.IsBottleneck ? "! WARN" : "  OK";
                 sb.AppendLine($"| #{station.StationId} | {station.Utilization:P0} | {station.CurrentQueue} | {station.PeakQueue} | {status} |");
             }
             sb.AppendLine();
@@ -75,9 +87,9 @@ public class AnalyticsReporter : IAnalyticsReporter
         var sb = new StringBuilder();
 
         sb.AppendLine();
-        sb.AppendLine("╔══════════════════════════════════════════════════════════╗");
-        sb.AppendLine("║            KODAMA SIMULATION REPORT                      ║");
-        sb.AppendLine("╚══════════════════════════════════════════════════════════╝");
+        sb.AppendLine("============================================================");
+        sb.AppendLine("            KODAMA SIMULATION REPORT                      ");
+        sb.AppendLine("============================================================");
         sb.AppendLine();
 
         sb.AppendLine($"  Duration:         {report.ElapsedSeconds:F1} seconds");
@@ -87,17 +99,17 @@ public class AnalyticsReporter : IAnalyticsReporter
 
         if (report.Stations?.Count > 0)
         {
-            sb.AppendLine("  ┌──────────┬─────────────┬───────────┬───────────┬────────┐");
-            sb.AppendLine("  │ Station  │ Utilization │ Cur Queue │ Peak Queue│ Status │");
-            sb.AppendLine("  ├──────────┼─────────────┼───────────┼───────────┼────────┤");
+            sb.AppendLine("  +----------+-------------+-----------+-----------+--------+");
+            sb.AppendLine("  | Station  | Utilization | Cur Queue | Peak Queue| Status |");
+            sb.AppendLine("  +----------+-------------+-----------+-----------+--------+");
 
             foreach (var station in report.Stations)
             {
-                var status = station.IsBottleneck ? "⚠ WARN" : "✓ OK  ";
-                sb.AppendLine($"  │ #{station.StationId,-7} │ {station.Utilization,10:P0} │ {station.CurrentQueue,9} │ {station.PeakQueue,9} │ {status} │");
+                var status = station.IsBottleneck ? "! WARN" : "  OK  ";
+                sb.AppendLine($"  | #{station.StationId,-7} | {station.Utilization,10:P0} | {station.CurrentQueue,9} | {station.PeakQueue,9} | {status} |");
             }
 
-            sb.AppendLine("  └──────────┴─────────────┴───────────┴───────────┴────────┘");
+            sb.AppendLine("  +----------+-------------+-----------+-----------+--------+");
             sb.AppendLine();
         }
 
@@ -106,7 +118,7 @@ public class AnalyticsReporter : IAnalyticsReporter
             sb.AppendLine("  RECOMMENDATIONS:");
             foreach (var rec in report.Recommendations)
             {
-                sb.AppendLine($"  • {rec}");
+                sb.AppendLine($"  - {rec}");
             }
             sb.AppendLine();
         }

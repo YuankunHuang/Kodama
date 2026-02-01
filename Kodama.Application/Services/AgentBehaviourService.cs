@@ -60,6 +60,7 @@ public class AgentBehaviourService
             {
                 worldState.MarkResourceAvailable(res);
                 res.Release();
+                _analytics.RecordQueueChange(res.Id, 0); // Resource released
             }
         }
 
@@ -102,12 +103,13 @@ public class AgentBehaviourService
         if (res == null || res.IsDepleted)
         {
             // resource gone, erase it & agent will return to Tree & deposit
-            agent.ClearHarvestTarget();
-            agent.ChangeState(AgentState.ReturningToBase);
             if (res != null)
             {
+                _analytics.RecordQueueChange(res.Id, 0); // Resource released
                 worldState.RemoveResource(res.Id);
             }
+            agent.ClearHarvestTarget();
+            agent.ChangeState(AgentState.ReturningToBase);
             return;
         }
 
@@ -121,6 +123,7 @@ public class AgentBehaviourService
         if (res.IsDepleted)
         {
             res.Release();
+            _analytics.RecordQueueChange(res.Id, 0); // Resource released
             worldState.RemoveResource(res.Id);
             agent.ClearHarvestTarget();
             agent.ChangeState(AgentState.ReturningToBase);
@@ -128,6 +131,7 @@ public class AgentBehaviourService
         else if (agent.IsFull)
         {
             res.Release();
+            _analytics.RecordQueueChange(res.Id, 0); // Resource released
             worldState.MarkResourceAvailable(res);
             agent.ClearHarvestTarget();
             agent.ChangeState(AgentState.ReturningToBase);
@@ -175,6 +179,7 @@ public class AgentBehaviourService
             worldState.MarkResourceUnavailable(res);
             agent.SetHarvestTarget(res.Id);
             agent.ChangeState(Domain.Enums.AgentState.MovingToResource);
+            _analytics.RecordQueueChange(res.Id, 1); // Resource occupied
         }
         else
         {
