@@ -1,4 +1,5 @@
 using Kodama.Application.Interfaces;
+using Kodama.Shared.DTOs;
 using Microsoft.Extensions.Hosting;
 
 namespace Kodama.Infrastructure.Hosting;
@@ -37,6 +38,31 @@ public class SimulationHostedServices : BackgroundService
         _analytics = analytics;
         _analyticsReporter = analyticsReporter;
     }
+    
+    private async Task ExportReportsAsync(AnalyticsReport report)
+    {
+        try
+        {
+            // Output to zip root (parent of Backend/) or fallback to BaseDirectory
+            var baseDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var zipRoot = Directory.GetParent(baseDir)?.FullName ?? baseDir;
+            var reportsDir = Path.Combine(zipRoot, "reports");
+            Directory.CreateDirectory(reportsDir);
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+            
+            await Task.WhenAll(
+                File.WriteAllTextAsync(Path.Combine(reportsDir, $"report-{timestamp}.json"), _analyticsReporter.ExportJson(report)),
+                File.WriteAllTextAsync(Path.Combine(reportsDir, $"report-{timestamp}.csv"), _analyticsReporter.ExportCsv(report)),
+                File.WriteAllTextAsync(Path.Combine(reportsDir, $"report-{timestamp}.md"), _analyticsReporter.ExportMarkdown(report))
+            );
+            
+            Console.WriteLine($"[Analytics] Reports exported to: {reportsDir}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Analytics] Failed to export reports: {ex.Message}");
+        }
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -50,7 +76,7 @@ public class SimulationHostedServices : BackgroundService
             // Handle pause state
             if (_isPaused)
             {
-                // Record when pause started
+                // Record when pause started (to recover later)
                 pauseStartTime ??= DateTime.UtcNow;
                 _simulationLoop.SetTimeScale(0f);
                 await Task.Delay(BaseTickInterval, stoppingToken);
@@ -67,7 +93,7 @@ public class SimulationHostedServices : BackgroundService
             
             // Adjust tick interval based on time scale
             float intervalMs = BaseTickInterval / _timeScale;
-            float deltaTime = BaseTickInterval / 1000f; // Always simulate 100ms of game time per tick
+            float deltaTime = BaseTickInterval / 1000f;
             
             var interval = TimeSpan.FromMilliseconds(intervalMs);
             nextTickTime += interval;
@@ -84,6 +110,10 @@ public class SimulationHostedServices : BackgroundService
             {
                 var report = _analytics.GenerateReport();
                 _analyticsReporter.PrintToConsole(report);
+                
+                // Export reports to files (fire-and-forget, non-blocking)
+                _ = ExportReportsAsync(report);
+                
                 _nextReportTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + ReportPeriod;
             }
             
