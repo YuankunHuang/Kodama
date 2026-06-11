@@ -17,7 +17,7 @@ builder.Services.AddSignalR();
 builder.Services.AddHostedService<SimulationHostedServices>();
 builder.Services.AddSingleton<ISimulationLoop, SimulationLoop>();
 builder.Services.AddSingleton<IGameBroadcaster, SignalRBroadcaster>();
-builder.Services.AddSingleton<AgentBehaviourService>();
+builder.Services.AddSingleton<AgentBehaviourSystem>();
 builder.Services.AddSingleton<WorldState>();
 builder.Services.AddSingleton<ISimulationAnalytics, SimulationAnalytics>();
 builder.Services.AddSingleton<IAnalyticsReporter, AnalyticsReporter>();

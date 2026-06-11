@@ -5,44 +5,33 @@ namespace Kodama.Application.States;
 
 public class WorldState
 {
-    private int _nextAgentId = 1;
+    public const int MaxAgents = 10000;
+
     private int _nextResourceId = 1;
 
-    public int AllocateAgentId() => _nextAgentId++;
     public int AllocateResourceId() => _nextResourceId++;
 
     public Tree Tree { get; private set; } = Tree.Create(1, new Position(0, 0), 0);
 
+    /// <summary>Sparse-set SoA storage for all agents (the simulation hot path).</summary>
+    public AgentStore Agents { get; } = new(MaxAgents);
+
     private readonly HashSet<Resource> _availableResources = new();
 
     // id
-    private readonly Dictionary<int, Agent> _agents = new();
     private readonly Dictionary<int, Resource> _resources = new();
-    
+
     // position
-    private readonly Dictionary<Position, HashSet<Agent>> _agentsByPosition = new();
     private readonly Dictionary<Position, HashSet<Resource>> _resourcesByPosition = new();
 
     #region Getter
     public HashSet<Resource> GetAvailableResources() => _availableResources;
 
-    public int GetAgentCount()
-    {
-        return _agents.Count;
-    }
+    public int GetAgentCount() => Agents.Count;
 
     public int GetResourceCount()
     {
         return _resources.Count;
-    }
-
-    public Agent? GetAgent(int id)
-    {
-        if (_agents.TryGetValue(id, out var agent))
-        {
-            return agent;
-        }
-        return null;
     }
 
     public Resource? GetResource(int id)
@@ -54,17 +43,7 @@ public class WorldState
         return null;
     }
 
-    public Dictionary<int, Agent>.ValueCollection GetAllAgents() => _agents.Values;
     public Dictionary<int, Resource>.ValueCollection GetAllResources() => _resources.Values;
-
-    public HashSet<Agent>? GetAgentsByPosition(Position position)
-    {
-        if (_agentsByPosition.TryGetValue(position, out var agents))
-        {
-            return agents;
-        }
-        return null;
-    }
 
     public HashSet<Resource>? GetResourcesByPosition(Position position)
     {
@@ -77,50 +56,6 @@ public class WorldState
     #endregion
 
     #region Modifier
-    public void MoveAgent(int id, Position newPos)
-    {
-        var agent = GetAgent(id);
-        if (agent == null)
-        {
-            return;
-        }
-        if (_agentsByPosition.TryGetValue(agent.CurrentPosition, out var oldSet))
-        {
-            oldSet.Remove(agent);
-        }
-        agent.MoveTo(newPos);
-        if (!_agentsByPosition.TryGetValue(newPos, out var set))
-        {
-            set = new();
-            _agentsByPosition[newPos] = set;
-        }
-        set.Add(agent);
-    }
-
-    public void SetAgent(Agent agent)
-    {
-        if (agent == null)
-        {
-            return;
-        }
-
-        if (_agents.TryGetValue(agent.Id, out var oldAgent))
-        {
-            if (_agentsByPosition.TryGetValue(oldAgent.CurrentPosition, out var oldSet))
-            {
-                oldSet.Remove(oldAgent);
-            }
-        }
-
-        _agents[agent.Id] = agent;
-        if (!_agentsByPosition.TryGetValue(agent.CurrentPosition, out var set))
-        {
-            set = new();
-            _agentsByPosition[agent.CurrentPosition] = set;
-        }
-        set.Add(agent);
-    }
-
     public void SetResource(Resource resource)
     {
         if (resource == null)
@@ -147,19 +82,6 @@ public class WorldState
         if (resource.IsAvailable)
         {
             _availableResources.Add(resource);
-        }
-    }
-
-    public void RemoveAgent(int id)
-    {
-        if (_agents.TryGetValue(id, out var agent))
-        {
-            if (_agentsByPosition.TryGetValue(agent.CurrentPosition, out var set))
-            {
-                set.Remove(agent);
-            }
-
-            _agents.Remove(id);
         }
     }
 
@@ -194,20 +116,18 @@ public class WorldState
 
     public void Clear()
     {
-        _agents.Clear();
+        Agents.Clear();
         _resources.Clear();
-        _agentsByPosition.Clear();
         _resourcesByPosition.Clear();
         _availableResources.Clear();
-        _nextAgentId = 1;
         _nextResourceId = 1;
         Tree = Tree.Create(1, new Position(0, 0), 0);
     }
 
     public Resource? FindNearestAvailableResource(Position from)
     {
-        // DOD > OOP :D
-        // traverse all Resources from the god view, return the nearest one
+        // traverse all available Resources, return the nearest one
+        // (linear scan — profiled as a non-bottleneck at 10K agents; kept simple on purpose)
         var minDistance = int.MaxValue;
         Resource? nearestRes = null;
         foreach (var res in _availableResources)
