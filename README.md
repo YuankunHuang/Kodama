@@ -6,7 +6,7 @@
 
 ## Highlights
 
-- **10,000 Agents** real-time simulation, server tick < 1ms
+- **10,000 Agents** real-time simulation, server tick ~0.25 ms
 - **Zero GC allocation** in hot path, stable 60 FPS client
 - **Server-authoritative architecture**, client is pure renderer
 - **Real-time HUD monitoring**, professional-grade data visualization
@@ -125,8 +125,8 @@ The server's hot path runs on data-oriented storage rather than object graphs:
 | Metric | Value |
 |--------|-------|
 | Agent Count | 10,000 |
-| Server Tick Time | < 1 ms |
-| Server GC Allocation | 0 bytes/tick |
+| Server Tick Time | ~0.25 ms steady state (0.16–0.38 ms measured) |
+| Server GC Allocation | 0 bytes/tick (steady state) |
 | Client FPS | 60 (GPU Instancing) |
 | Network Protocol | MessagePack (Binary) |
 
