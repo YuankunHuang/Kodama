@@ -28,7 +28,7 @@ Kodama/
 ├── Kodama.API/              # Entry point, DI registration, SignalR Hub
 ├── Kodama.Application/      # SimulationLoop, AgentBehaviourService, WorldState
 ├── Kodama.Infrastructure/   # SignalR Broadcaster, HostedService
-├── Kodama.Domain/           # Agent, Resource, Tree entities
+├── Kodama.Domain/           # AgentStore (sparse-set SoA), Resource, Tree
 ├── Kodama.Shared/           # DTOs (MessagePack, netstandard2.1)
 └── Kodama.Client/           # Unity client (URP + GPU Instancing)
 ```
@@ -60,7 +60,7 @@ cd Kodama
 dotnet run --project Kodama.API
 ```
 
-Server starts at `http://localhost:5059`
+Server starts at `http://localhost:5000`
 
 #### 2. Start Unity Client
 
@@ -78,14 +78,36 @@ Or open `Kodama.Client/` in Unity Editor and play `Assets/Scenes/Main.unity`
 | -/+ | Slow Down/Speed Up |
 | 0 | Reset Speed |
 
+## Data-Oriented Core
+
+The server's hot path runs on data-oriented storage rather than object graphs:
+
+- **Sparse-set SoA agent store** ([`Kodama.Domain/Entities/AgentStore.cs`](Kodama.Domain/Entities/AgentStore.cs)) —
+  dense/sparse index pairs with parallel component arrays for position, state,
+  inventory, and harvest target (ECS-style storage). There is no `Agent` class:
+  agents exist only as indices into these arrays, so the tick path touches no
+  per-agent heap objects.
+- **Per-state dense sets** — each FSM state owns its own sparse set, so
+  [`AgentBehaviourSystem`](Kodama.Application/Services/AgentBehaviourSystem.cs)
+  processes each state as a batch over a dense `int` span (state segments are
+  snapshotted into a pre-allocated scratch buffer per tick, so each agent is
+  stepped exactly once), and the HUD's per-state counts are O(1) reads.
+- **Position-hashed resource index** ([`Kodama.Application/States/WorldState.cs`](Kodama.Application/States/WorldState.cs)) —
+  resources are indexed by hex cell (`Dictionary<Position, HashSet<Resource>>`)
+  for O(1) cell lookups. Resources and the base Tree stay as plain objects:
+  there are ~200 of them versus 10,000 agents, and they are not the bottleneck.
+- **Acknowledged debt:** nearest-resource search is currently a linear scan over
+  available resources; at 10K agents, profiling showed it was not the bottleneck,
+  so it stays simple until measurements say otherwise.
+
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         SERVER                              │
 │  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ WorldState  │→ │ SimulationLoop│→ │ SignalRBroadcaster│  │
-│  │ (10k Agents)│  │   (20 Hz)    │  │   (MessagePack)   │  │
+│  │ AgentStore  │→ │ SimulationLoop│→ │ SignalRBroadcaster│  │
+│  │ (10k SoA)   │  │   (20 Hz)    │  │   (MessagePack)   │  │
 │  └─────────────┘  └──────────────┘  └─────────┬─────────┘  │
 └───────────────────────────────────────────────│─────────────┘
                                                 ↓ WebSocket
@@ -129,16 +151,19 @@ See [DEVLOG.md](DEVLOG.md)
 
 | Decision | Reason |
 |----------|--------|
+| Sparse-set SoA storage (`AgentStore`) | ECS-style parallel arrays + per-state dense sets; zero per-agent allocations, cache-friendly iteration; replaced the original `Dictionary<int, Agent>` object model |
+| Position-hashed resource index | O(1) hex-cell lookups for resources instead of world scans |
 | Guid → int ID | Reduce snapshot size, improve serialization performance |
 | JSON → MessagePack | Binary serialization, smaller and faster |
 | Duck Typing Enumerator | Avoid GC allocation from Dictionary.Values |
 | GPU Instancing | Single draw call for 10K+ entities |
+| Linear nearest-resource scan (kept) | Profiled as non-bottleneck at 10K agents; complexity deferred until measurements demand it |
 
 ## Troubleshooting
 
 **Q: Client can't connect to server?**
 
-Ensure the backend window shows "Now listening on: http://localhost:5059"
+Ensure the backend window shows "Now listening on: http://localhost:5000"
 
 **Q: Can't see agents?**
 
@@ -146,7 +171,7 @@ Check Unity console for "Connected to server" message.
 
 **Q: Backend error?**
 
-Ensure port 5059 is not occupied by another process.
+Ensure port 5000 is not occupied by another process.
 
 ## License
 

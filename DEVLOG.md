@@ -85,6 +85,32 @@ Kodama.Client/
 - No .proto definition needed (compared to Protobuf)
 - Good Unity compatibility
 
+### ADR-008: DOD Migration — Sparse-Set SoA Agent Storage (2026-06-11)
+**Decision**: Replace the `Dictionary<int, Agent>` object model with `AgentStore`,
+a sparse-set, structure-of-arrays store with per-state dense sets; delete the
+`Agent` class entirely.  
+**Reasoning**:
+- Component arrays (Q/R, state, inventory, harvest target) indexed by entity id —
+  cache-linear iteration, zero per-agent heap objects
+- Per-state sparse sets let `AgentBehaviourSystem` process each FSM state as a
+  batch over a dense `int` span, and make HUD state counts O(1) (previously a
+  per-agent switch over all 10K agents every snapshot)
+- State segments are snapshotted into a pre-allocated scratch buffer at tick
+  start, so transitions during processing are safe and each agent is stepped
+  exactly once per tick (preserving the old per-agent-switch semantics)
+- Dropped the per-move `Dictionary<Position, HashSet<Agent>>` index maintenance
+  (10K updates/tick) — it had no consumers; the position index is kept for
+  resources only
+
+**Measured after migration** (Debug build, in-process logging):
+- 10,000 agents, 217 resources, full FSM cycle (Tree matter accumulating)
+- Steady-state tick: **0.16–0.38 ms** (was: <1 ms claimed; now consistently ~0.25 ms)
+- Steady-state allocation: **0 bytes/tick** (warm-up only: first 2 ticks)
+
+**Also in this change**: removed two abandoned half-finished files that did not
+compile (`SimulationManager`, stub `AgentBehaviourSystem`) — the build was red
+before this migration and is green after.
+
 ---
 
 ## Performance Results
@@ -92,8 +118,8 @@ Kodama.Client/
 | Metric | Value |
 |--------|-------|
 | Agent Count | 10,000 |
-| Server Tick Time | < 1 ms |
-| Server GC Allocation | 0 bytes/tick |
+| Server Tick Time | ~0.25 ms steady state (0.16–0.38 ms, post-DOD migration) |
+| Server GC Allocation | 0 bytes/tick (steady state) |
 | Client FPS | 60 (GPU Instancing) |
 | Network Protocol | MessagePack (Binary) |
 

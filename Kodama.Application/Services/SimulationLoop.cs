@@ -2,6 +2,7 @@ using Kodama.Shared.DTOs;
 using Kodama.Application.Interfaces;
 using Kodama.Application.States;
 using Kodama.Domain.Entities;
+using Kodama.Domain.Enums;
 using Kodama.Domain.ValueObjects;
 using System.Diagnostics;
 
@@ -10,27 +11,25 @@ namespace Kodama.Application.Services;
 public class SimulationLoop : ISimulationLoop
 {
     private readonly WorldState _worldState;
-    private readonly AgentBehaviourService _agentBehaviourService;
+    private readonly AgentBehaviourSystem _agentBehaviourSystem;
     private readonly List<AgentSnapshot> _agentSnapshots;
     private readonly List<ResourceSnapshot> _resourceSnapshots;
-    private readonly List<int> _agentsToRemove;
     private readonly Stopwatch _stopwatch;
     private readonly ISimulationAnalytics _analytics;
 
     // Configurable: Agent count determines map scale
-    private const int InitialAgentCount = 10000;
+    private const int InitialAgentCount = WorldState.MaxAgents;
     private const int ResourcesPerRing = 12; // Resources per radius ring
     private const int MapRadius = 50; // Max hex distance from center
 
-    public SimulationLoop(WorldState worldState, AgentBehaviourService agentBehaviourService, ISimulationAnalytics analytics)
+    public SimulationLoop(WorldState worldState, AgentBehaviourSystem agentBehaviourSystem, ISimulationAnalytics analytics)
     {
         _worldState = worldState;
-        _agentBehaviourService = agentBehaviourService;
+        _agentBehaviourSystem = agentBehaviourSystem;
         _analytics = analytics;
-        
+
         _agentSnapshots = new(InitialAgentCount);
         _resourceSnapshots = new(ResourcesPerRing * MapRadius);
-        _agentsToRemove = new(128);
         _stopwatch = new();
 
         InitializeWorld();
@@ -43,8 +42,7 @@ public class SimulationLoop : ISimulationLoop
         // Spawn agents at tree position (center of the world)
         for (int i = 0; i < InitialAgentCount; i++)
         {
-            var agent = Agent.Create(_worldState.AllocateAgentId(), treePos);
-            _worldState.SetAgent(agent);
+            _worldState.Agents.Add(treePos);
         }
 
         // Generate resources in hexagonal ring pattern
@@ -129,24 +127,7 @@ public class SimulationLoop : ISimulationLoop
 
         _stopwatch.Restart();
 
-        _agentsToRemove.Clear();
-
-        foreach (var agent in _worldState.GetAllAgents())
-        {
-            _agentBehaviourService.Process(agent, _worldState, deltaTime);
-            if (agent.State == Domain.Enums.AgentState.Dead)
-            {
-                _agentsToRemove.Add(agent.Id);
-            }
-        }
-
-        if (_agentsToRemove.Count > 0)
-        {
-            foreach (var id in _agentsToRemove)
-            {
-                _worldState.RemoveAgent(id);
-            }
-        }
+        _agentBehaviourSystem.Tick(_worldState.Agents, _worldState, deltaTime);
 
         _stopwatch.Stop();
         var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
@@ -156,38 +137,30 @@ public class SimulationLoop : ISimulationLoop
 
         var snapshotData = GenerateSnapshot();
 
-        // Console.WriteLine($"{_worldState.GetAgentCount()} agents | TickTime: {_lastTickTimeMs:F2}ms | Alloc: {_lastAllocBytes} bytes");
+        if (Environment.GetEnvironmentVariable("KODAMA_TICK_LOG") == "1")
+        {
+            Console.WriteLine($"{_worldState.GetAgentCount()} agents | Idle:{_worldState.Agents.GetStateCount(AgentState.Idle)} Find:{_worldState.Agents.GetStateCount(AgentState.FindingResource)} Move:{_worldState.Agents.GetStateCount(AgentState.MovingToResource)} Col:{_worldState.Agents.GetStateCount(AgentState.Collecting)} Ret:{_worldState.Agents.GetStateCount(AgentState.ReturningToBase)} Dep:{_worldState.Agents.GetStateCount(AgentState.Depositing)} | Tree:{_worldState.Tree.Matter} | TickTime: {_lastTickTimeMs:F2}ms | Alloc: {_lastAllocBytes} bytes");
+        }
 
         return snapshotData;
     }
 
     private SnapshotData GenerateSnapshot()
     {
-        // Agent state counters
-        int idle = 0, finding = 0, moving = 0, collecting = 0, returning = 0, depositing = 0;
-        
-        // Agents
+        var store = _worldState.Agents;
+
+        // Agents — iterate the live dense set; state counts come from the
+        // per-state sets in O(1) instead of a per-agent switch.
         _agentSnapshots.Clear();
-        foreach (var agent in _worldState.GetAllAgents())
+        foreach (var id in store.LiveAgents)
         {
             _agentSnapshots.Add(new AgentSnapshot
             {
-                Id = agent.Id,
-                Q = agent.CurrentPosition.Q,
-                R = agent.CurrentPosition.R,
-                State = (byte)agent.State,
+                Id = id,
+                Q = store.Q[id],
+                R = store.R[id],
+                State = (byte)store.States[id],
             });
-            
-            // Count states
-            switch (agent.State)
-            {
-                case Domain.Enums.AgentState.Idle: idle++; break;
-                case Domain.Enums.AgentState.FindingResource: finding++; break;
-                case Domain.Enums.AgentState.MovingToResource: moving++; break;
-                case Domain.Enums.AgentState.Collecting: collecting++; break;
-                case Domain.Enums.AgentState.ReturningToBase: returning++; break;
-                case Domain.Enums.AgentState.Depositing: depositing++; break;
-            }
         }
 
         // Tree
@@ -219,17 +192,17 @@ public class SimulationLoop : ISimulationLoop
         // Stats
         var stats = new SimulationStats
         {
-            AgentCount = _agentSnapshots.Count,
+            AgentCount = store.Count,
             ResourceCount = _resourceSnapshots.Count,
             TickTimeMs = _lastTickTimeMs,
             MemoryAllocBytes = _lastAllocBytes,
             TimeScale = _timeScale,
-            AgentsIdle = idle,
-            AgentsFinding = finding,
-            AgentsMoving = moving,
-            AgentsCollecting = collecting,
-            AgentsReturning = returning,
-            AgentsDepositing = depositing,
+            AgentsIdle = store.GetStateCount(AgentState.Idle),
+            AgentsFinding = store.GetStateCount(AgentState.FindingResource),
+            AgentsMoving = store.GetStateCount(AgentState.MovingToResource),
+            AgentsCollecting = store.GetStateCount(AgentState.Collecting),
+            AgentsReturning = store.GetStateCount(AgentState.ReturningToBase),
+            AgentsDepositing = store.GetStateCount(AgentState.Depositing),
             TreeEnergy = tree.Matter,
             ResourcesOccupied = resourcesOccupied,
             ResourcesAvailable = _resourceSnapshots.Count - resourcesOccupied,

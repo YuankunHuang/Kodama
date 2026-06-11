@@ -37,14 +37,6 @@ public class SimulationAnalytics : ISimulationAnalytics
     
     public void Tick(float deltaTime)
     {
-        var isElapsedTimeRead = false;
-        var elapsedTime = Volatile.Read(ref _elapsedTime);
-        Volatile.Write(ref isElapsedTimeRead, true);
-        if (isElapsedTimeRead)
-        {
-            
-        }
-        
         var elap = Volatile.Read(ref _elapsedTime);
         Volatile.Write(ref _elapsedTime, elap + deltaTime);
     }
