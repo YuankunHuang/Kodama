@@ -24,6 +24,9 @@ public class WorldState
     // position
     private readonly Dictionary<Position, HashSet<Resource>> _resourcesByPosition = new();
 
+    // Uniform-grid spatial partition for nearest-resource queries.
+    private readonly ResourceSpatialGrid _spatialGrid = new();
+
     #region Getter
     public HashSet<Resource> GetAvailableResources() => _availableResources;
 
@@ -65,6 +68,7 @@ public class WorldState
 
         if (_resources.TryGetValue(resource.Id, out var oldResource))
         {
+            _spatialGrid.Remove(oldResource);
             if (_resourcesByPosition.TryGetValue(oldResource.Position, out var oldSet))
             {
                 oldSet.Remove(oldResource);
@@ -72,6 +76,7 @@ public class WorldState
         }
 
         _resources[resource.Id] = resource;
+        _spatialGrid.Insert(resource);
         if (!_resourcesByPosition.TryGetValue(resource.Position, out var set))
         {
             set = new();
@@ -90,6 +95,7 @@ public class WorldState
         if (_resources.TryGetValue(id, out var resource))
         {
             _availableResources.Remove(resource);
+            _spatialGrid.Remove(resource);
 
             if (_resourcesByPosition.TryGetValue(resource.Position, out var set))
             {
@@ -119,6 +125,7 @@ public class WorldState
         Agents.Clear();
         _resources.Clear();
         _resourcesByPosition.Clear();
+        _spatialGrid.Clear();
         _availableResources.Clear();
         _nextResourceId = 1;
         Tree = Tree.Create(1, new Position(0, 0), 0);
@@ -126,20 +133,8 @@ public class WorldState
 
     public Resource? FindNearestAvailableResource(Position from)
     {
-        // traverse all available Resources, return the nearest one
-        // (linear scan — profiled as a non-bottleneck at 10K agents; kept simple on purpose)
-        var minDistance = int.MaxValue;
-        Resource? nearestRes = null;
-        foreach (var res in _availableResources)
-        {
-            var dist = from.DistanceTo(res.Position);
-            if (dist < minDistance)
-            {
-                minDistance = dist;
-                nearestRes = res;
-            }
-        }
-
-        return nearestRes;
+        // Uniform-grid spatial partition: walk outward in Chebyshev rings from
+        // the query cell instead of scanning every available resource.
+        return _spatialGrid.FindNearestAvailable(from);
     }
 }
